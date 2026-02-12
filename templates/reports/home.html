@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - GIS Dashboard{% endblock %}
+
+{% block content %}
+<div class="container welcome-ctnr">
+    <div>
+        <h2>Benvenuto!</h2>
+        <p>Benvenuto nell'area di gestione della reportistica della Direzione Tecnica.</p>
+    </div>
+    <div>
+        <i class="fa-solid fa-helmet-safety fa-4x"></i>
+    </div>
+</div>
+
+<div class="text-chunk">
+    <h1>Servizi</h1>
+    <p>Elenco dei principali servizi disponibili.</p>
+</div>
+
+<!-- LAYOUT RESPONSIVE A 3 COLONNE -->
+<div class="grid-container columns-3">
+    <div class="grid-column">
+        <div class="icon-background">
+            <i class="fa-solid fa-file-invoice fa-3x"></i>
+        </div>
+        <h2>Report di sopralluogo</h2>
+        <p>Report di sopralluogo per interventi di manutenzione.</p>
+        <a href="{% url 'reports:report_list' %}" class="standard-link filled-link">Vai alla pagina</a>
+    </div>
+</div>
+{% endblock %}

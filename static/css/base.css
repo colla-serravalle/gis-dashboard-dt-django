@@ -1,0 +1,28 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Radio+Canada:ital,wght@0,300..700;1,300..700&display=swap');
+/* COLORI ORIGINALI
+:root{
+    --base-clr:#11121a;
+    --line-clr:#42434a;
+    --hover-clr:#222533;
+    --text-clr:#e6e6ef;
+    --primary-clr:#5e63ff;
+    --secondary-text-clr:#b0b3c1;
+}*/
+:root{
+    --font-primary: Poppins, 'Segoe UI', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --font-tester: "Radio Canada", sans-serif;
+    --base-clr:#fff;
+    --sidebar-base-clr:#f0f4f9;
+    --line-clr:#747474;
+    --hover-clr:#dadee3;
+    --text-clr:#3a3a3a;
+    --primary-clr:rgb(0, 89, 150);
+    --primary-clr-container:rgb(200 225 242);
+    --accent-clr:#f8c12a;
+    --secondary-text-clr:#525252;
+    --container-base-clr:#f5f6f8;
+    --border-clr:#dee2e6;
+    --serravalle-light-green-clr:rgb(151, 199, 74);
+    --serravalle-dark-green-clr:rgb(0, 120, 52);
+}

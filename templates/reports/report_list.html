@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Report di sopralluogo - GIS Dashboard{% endblock %}
+
+{% block extra_head %}
+<script type="text/javascript" src="{% static 'js/filter-manager.js' %}" defer></script>
+<script type="text/javascript" src="{% static 'js/table-sorter.js' %}" defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="text-chunk">
+    <h1>Report di sopralluogo</h1>
+    <p>Archivio dei sopralluoghi effettuati.</p>
+</div>
+
+<!-- Container per i filtri -->
+<div id="filters-container"></div>
+
+<table>
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>{{ labels.nome_operatore }}</th>
+        <th>{{ labels.tratta }}</th>
+        <th>{{ labels.tipologia_appalto }}</th>
+        <th>{{ labels.data_rilevamento }}</th>
+        <th>Azioni</th>
+    </tr>
+    </thead>
+    <tbody id="tableBody">
+    <tr>
+        <td colspan="6" style="text-align: center; padding: 20px;">
+        Caricamento dati...
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+<!-- Paginazione -->
+<div class="pagination" id="pagination">
+    <button id="prevPage" class="page-btn"><i class="fa-solid fa-circle-left fa-1x"></i></button>
+    <span id="pageInfo">Pagina 1</span>
+    <button id="nextPage" class="page-btn"><i class="fa-solid fa-circle-right fa-1x"></i></button>
+</div>
+
+<script>
+    const itemsPerPage = {{ items_per_page }};
+
+    let currentPage = 1;
+    let totalItems = 0;
+    let filterManager;
+    let tableSorter;
+    let currentSort = { by: 'data_rilevamento', order: 'desc' };
+
+    window.currentSort = currentSort;
+
+    function loadData(page, useFilters = false) {
+        let url = `/api/data/?page=${page}&per_page=${itemsPerPage}`;
+
+        url += `&sort_by=${currentSort.by}&sort_order=${currentSort.order}`;
+
+        if (useFilters && filterManager) {
+            const filters = filterManager.getActiveFilters();
+            const params = new URLSearchParams(filters);
+            if (params.toString()) {
+                url += '&' + params.toString();
+            }
+        }
+
+        return fetch(url)
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error('Errore nel caricamento dei dati');
+                }
+                return res.json();
+            })
+            .then(response => {
+                console.log('Dati ricevuti dal server:', response);
+                updateTable(response, page);
+                return response;
+            })
+            .catch(error => {
+                console.error('Errore:', error);
+                const tbody = document.getElementById('tableBody');
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px; color: red;">Errore nel caricamento dei dati</td></tr>';
+                throw error;
+            });
+    }
+
+    function updateTable(response, page) {
+        const tbody = document.getElementById('tableBody');
+        totalItems = response.total;
+        const data = response.data;
+        currentPage = page;
+
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">Nessun dato trovato</td></tr>';
+            updatePaginationControls();
+            return;
+        }
+
+        tbody.innerHTML = '';
+
+        data.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${escapeHtml(row.uniquerowid)}</td>
+                <td>${escapeHtml(row.nome_operatore)}</td>
+                <td>${escapeHtml(row.tratta)}</td>
+                <td>${escapeHtml(row.tipologia_appalto)}</td>
+                <td>${escapeHtml(row.data_rilevamento)}</td>
+                <td><a href="{% url 'reports:report_detail' %}?id=${encodeURIComponent(row.uniquerowid)}" class="link-tabella action-generic"><i class="fa-solid fa-square-up-right"></i>Apri</a></td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        updatePaginationControls();
+    }
+
+    function updatePaginationControls() {
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        document.getElementById('pageInfo').textContent = `Pagina ${currentPage} di ${totalPages || 1}`;
+        document.getElementById('prevPage').disabled = currentPage === 1;
+        document.getElementById('nextPage').disabled = currentPage === totalPages || totalPages === 0;
+    }
+
+    document.getElementById('prevPage').addEventListener('click', () => {
+        if (currentPage > 1) {
+            if (filterManager) {
+                filterManager.reloadData(currentPage - 1, itemsPerPage);
+            } else {
+                loadData(currentPage - 1);
+            }
+        }
+    });
+
+    document.getElementById('nextPage').addEventListener('click', () => {
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        if (currentPage < totalPages) {
+            if (filterManager) {
+                filterManager.reloadData(currentPage + 1, itemsPerPage);
+            } else {
+                loadData(currentPage + 1);
+            }
+        }
+    });
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function handleSortChange(field, order) {
+        currentSort = { by: field, order: order };
+        window.currentSort = currentSort;
+
+        if (filterManager) {
+            filterManager.reloadData(1, itemsPerPage);
+        } else {
+            loadData(1);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        tableSorter = new TableSorter({
+            tableSelector: 'table',
+            defaultSort: {
+                by: 'data_rilevamento',
+                order: 'desc'
+            },
+            sortableColumns: {
+                1: { field: 'nome_operatore' },
+                2: { field: 'tratta' },
+                3: { field: 'tipologia_appalto' },
+                4: { field: 'data_rilevamento' }
+            },
+            onSortChange: handleSortChange
+        });
+
+        filterManager = new FilterManager({
+            containerId: 'filters-container',
+            dataEndpoint: '/api/data/',
+            filterOptionsEndpoint: '/api/filters/',
+            itemsPerPage: itemsPerPage,
+            filters: [
+                {
+                    field: 'nome_operatore',
+                    label: '{{ labels.nome_operatore }}',
+                    type: 'select'
+                },
+                {
+                    field: 'tratta',
+                    label: '{{ labels.tratta }}',
+                    type: 'select'
+                },
+                {
+                    field: 'tipologia_appalto',
+                    label: '{{ labels.tipologia_appalto }}',
+                    type: 'select'
+                },
+                {
+                    field: 'date_range',
+                    label: 'Periodo',
+                    type: 'dateRange'
+                }
+            ],
+            onDataLoad: (data, page) => {
+                updateTable(data, page);
+            }
+        });
+
+        loadData(1);
+    });
+</script>
+{% endblock %}
