@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Profilo Utente - GIS Dashboard{% endblock %}
+
+{% block content %}
+<div class="profile-page-wrapper">
+    <div class="profile-card container">
+        <!-- Avatar Section -->
+        <div class="profile-header">
+            <div class="profile-avatar">
+                <span class="avatar-initials">{{ user.username|slice:":2"|upper }}</span>
+            </div>
+            <h1 class="profile-username">{{ user.username }}</h1>
+            <p class="profile-subtitle">{{ user.email }}</p>
+        </div>
+
+        <!-- User Info Section -->
+        <table class="data-list">
+            <tr>
+                <th>Nome Utente</th>
+                <td>{{ user.username }}</td>
+            </tr>
+            <tr>
+                <th>Email</th>
+                <td>{{ user.email }}</td>
+            </tr>
+            <tr>
+                <th>Nome Completo</th>
+                <td>{% if user.first_name or user.last_name %}{{ user.first_name }} {{ user.last_name }}{% else %}-{% endif %}</td>
+            </tr>
+            <tr>
+                <th>Data Registrazione</th>
+                <td>{{ user.date_joined|date:"d/m/Y" }}</td>
+            </tr>
+        </table>
+    </div>
+</div>
+{% endblock %}
