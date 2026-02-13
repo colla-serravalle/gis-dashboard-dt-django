@@ -11,16 +11,6 @@ from apps.reports.services.report_data import get_report_data
 
 
 @method_decorator(login_required, name='dispatch')
-class HomeView(View):
-    """Home page view."""
-
-    template_name = 'reports/home.html'
-
-    def get(self, request):
-        return render(request, self.template_name)
-
-
-@method_decorator(login_required, name='dispatch')
 class ReportListView(View):
     """Report list view with filtering, sorting, and pagination."""
 

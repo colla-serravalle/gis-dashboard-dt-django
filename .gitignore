@@ -26,3 +26,4 @@ gis-dashboard-dt/
 
 # Claude
 .claude/
+logs/

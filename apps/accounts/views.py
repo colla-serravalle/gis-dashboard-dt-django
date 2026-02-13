@@ -21,7 +21,7 @@ class LoginView(View):
         """Display login form."""
         # If already logged in, redirect to home
         if request.user.is_authenticated:
-            return redirect('reports:home')
+            return redirect('core:home')
 
         # Handle error messages from query params
         error = request.GET.get('error')

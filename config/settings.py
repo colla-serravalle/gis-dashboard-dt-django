@@ -192,3 +192,62 @@ CACHES = {
 # Rate limiting for login attempts
 MAX_LOGIN_ATTEMPTS = int(os.getenv('MAX_LOGIN_ATTEMPTS', 5))
 LOCKOUT_DURATION = int(os.getenv('LOCKOUT_DURATION', 900))  # 15 minutes
+
+# =============================================================================
+# Logging Configuration
+# =============================================================================
+
+# Log level from environment (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO').upper()
+
+# Custom handler class for gzip compression
+import gzip
+import shutil
+import logging.handlers
+
+
+class CompressedRotatingFileHandler(logging.handlers.RotatingFileHandler):
+    """RotatingFileHandler that compresses rotated logs with gzip."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.rotator = self._gzip_rotator
+
+    @staticmethod
+    def _gzip_rotator(source, dest):
+        """Compress the rotated log file."""
+        with open(source, 'rb') as f_in:
+            with gzip.open(f'{dest}.gz', 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
+        os.remove(source)
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {name} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': LOG_LEVEL,
+            'class': 'config.settings.CompressedRotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'django.log',
+            'maxBytes': 1024 * 1024 * 10,  # 10 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': LOG_LEVEL,
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console', 'file'],
+        'level': LOG_LEVEL,
+    },
+}

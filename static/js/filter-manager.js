@@ -476,8 +476,8 @@ class FilterManager {
         Object.keys(filters || {}).forEach(key => {
             const val = filters[key];
             if (Array.isArray(val)) {
-                // append each value separately so PHP receives it as array
-                val.forEach(v => params.append(key + '[]', v));
+                // append each value separately so Django receives it as array via getlist()
+                val.forEach(v => params.append(key, v));
             } else if (val !== undefined && val !== null && val !== '') {
                 params.append(key, val);
             }
