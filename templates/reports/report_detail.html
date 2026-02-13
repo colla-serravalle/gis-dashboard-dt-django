@@ -26,9 +26,9 @@
 </div>
 
 <div class="button-row">
-    <form method="get" action="#" id="pdf-download-form">
+    <form method="get" action="{% url 'reports:report_pdf' %}" id="pdf-download-form">
         <input type="hidden" name="rowid" value="{{ report_id }}">
-        <button type="submit" class="standard-btn filled-lightgreen-btn" disabled title="PDF export coming soon">
+        <button type="submit" class="standard-btn filled-lightgreen-btn">
             <i class="fa-solid fa-file-arrow-down"></i>Scarica PDF
         </button>
     </form>
@@ -134,4 +134,14 @@
 {% endif %}
 
 {% endif %}
+
+<div id="pdf-loading-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; justify-content:center; align-items:center; opacity:0; transition:opacity 0.3s ease;">
+    <div style="background:white; padding:32px 48px; border-radius:16px; text-align:center; box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+        <div style="width:48px; height:48px; border:4px solid #e0e0e0; border-top:4px solid #4caf50; border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 16px;"></div>
+        <p style="margin:0; font-size:16px; color:#333;">Generazione PDF in corso...</p>
+    </div>
+</div>
+<style>
+    @keyframes spin { to { transform: rotate(360deg); } }
+</style>
 {% endblock %}

@@ -6,7 +6,12 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "django>=6.0.2",
+    "pillow>=11.0.0",
     "python-dotenv>=1.2.1",
     "requests>=2.32.5",
     "truststore>=0.10.4",
+    "xhtml2pdf>=0.2.16",
 ]
+
+[tool.uv]
+native-tls = true

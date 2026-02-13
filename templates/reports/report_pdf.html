@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 20mm 15mm 20mm 15mm;
+        }
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 11pt;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        h1, h2 {
+            color: rgb(0, 89, 150);
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5px;
+        }
+        h1 {
+            font-size: 18pt;
+        }
+        h2 {
+            font-size: 14pt;
+            margin-top: 25px;
+        }
+        .logo {
+            width: 180px;
+            margin-bottom: 20px;
+        }
+        .report-info {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-left: 4px solid rgb(0, 89, 150);
+            margin-bottom: 20px;
+        }
+        .report-info p {
+            font-size: 8pt;
+            margin: 2px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .section {
+            margin-top: 25px;
+        }
+        .photo-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        .photo-table td {
+            width: 50%;
+            text-align: center;
+            vertical-align: top;
+            padding: 5px;
+            border: none;
+        }
+        .photo-table img {
+            max-width: 100%;
+            max-height: 700px;
+            height: auto;
+            margin-bottom: 5px;
+        }
+        .photo-caption {
+            font-size: 11pt;
+            margin: 5px 0 0 0;
+            padding: 0;
+        }
+        .signature-table {
+            width: 100%;
+            margin-top: 5px;
+            border-collapse: collapse;
+        }
+        .signature-table td {
+            border: none;
+        }
+    </style>
+</head>
+<body>
+
+    {% if company_logo_base64 %}
+    <img src="{{ company_logo_base64 }}" class="logo" alt="Logo">
+    {% endif %}
+
+    <h1>Verbale di sopralluogo</h1>
+    <p>Sopralluogo ID n.{{ object_id }} del {{ data_rilevamento }}</p>
+
+    <div class="report-info">
+        <p><strong>Global ID:</strong> {{ globalid }}</p>
+        <p><strong>Object ID:</strong> {{ object_id }}</p>
+        <p><strong>ID Record:</strong> {{ report_id }}</p>
+    </div>
+
+    <!-- Localizzazione intervento -->
+    <div class="section">
+        <h2>Localizzazione intervento</h2>
+        {% if location_data %}
+        <table>
+            {% for attr in location_data %}
+            <tr>
+                <th>{{ attr.label }}</th>
+                <td>{{ attr.value }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}
+        <p>Nessun dato disponibile</p>
+        {% endif %}
+    </div>
+
+    <!-- Dati principali -->
+    <div class="section">
+        <h2>Dati principali</h2>
+        {% if main_data %}
+        <table>
+            {% for attr in main_data %}
+            <tr>
+                <th>{{ attr.label }}</th>
+                <td>{{ attr.value }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}
+        <p>Nessun dato disponibile</p>
+        {% endif %}
+    </div>
+
+    <!-- Dati pavimentazioni -->
+    <div class="section">
+        <h2>Dati pavimentazioni</h2>
+        {% if pk_pav_data %}
+        <table>
+            <tr>
+                {% for header in pk_pav_headers %}
+                <th>{{ header }}</th>
+                {% endfor %}
+            </tr>
+            {% for row in pk_pav_data %}
+            <tr>
+                {% for attr in row %}
+                <td>{{ attr.value }}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}
+        <p>Nessun dato disponibile per questa sezione.</p>
+        {% endif %}
+    </div>
+
+    <!-- Dati imprese -->
+    <div class="section">
+        <h2>Dati imprese</h2>
+        {% if impresa_data %}
+        <table>
+            <tr>
+                {% for header in impresa_headers %}
+                <th>{{ header }}</th>
+                {% endfor %}
+            </tr>
+            {% for row in impresa_data %}
+            <tr>
+                {% for attr in row %}
+                <td>{{ attr.value }}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}
+        <p>Nessun dato disponibile per questa sezione.</p>
+        {% endif %}
+    </div>
+
+    <!-- Firma -->
+    {% if signature_base64 or nome_operatore %}
+    <div class="section">
+        <table class="signature-table">
+            <tr>
+                <td style="width: 60%;"></td>
+                <td style="width: 40%; padding: 15px; text-align: center; vertical-align: top;">
+                    <p style="font-size: 10pt; margin: 0 0 10px 0; font-weight: bold;">L'operatore</p>
+                    {% if signature_base64 %}
+                    <img src="{{ signature_base64 }}" style="max-width: 250px; max-height: 100px; height: auto; margin: 10px 0;">
+                    {% endif %}
+                    {% if nome_operatore %}
+                    <p style="font-size: 9pt; margin: 10px 0 0 0;">{{ nome_operatore }}</p>
+                    {% endif %}
+                    {% if data_rilevamento %}
+                    <p style="font-size: 9pt; margin: 5px 0 0 0; font-style: italic;">{{ data_rilevamento }}</p>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Allegati fotografici -->
+    <div class="section">
+        <h2>Allegati fotografici</h2>
+        {% if photos_base64 %}
+        <table class="photo-table">
+            {% for photo in photos_base64 %}
+            {% if forloop.counter0|divisibleby:2 %}
+            <tr>
+            {% endif %}
+                <td>
+                    <img src="{{ photo.base64 }}">
+                    <p class="photo-caption">{{ photo.name }}</p>
+                </td>
+            {% if forloop.counter|divisibleby:2 or forloop.last %}
+            {% if forloop.last and not forloop.counter|divisibleby:2 %}
+                <td></td>
+            {% endif %}
+            </tr>
+            {% endif %}
+            {% endfor %}
+        </table>
+        {% else %}
+        <p>Nessuna foto trovata.</p>
+        {% endif %}
+    </div>
+
+</body>
+</html>
