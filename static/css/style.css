@@ -1008,6 +1008,35 @@ a.link-testo:hover::before{
     .mobile-only{
         display: block;
     }
+
+    /* PROFILE PAGE RESPONSIVE */
+    .profile-page-wrapper {
+        padding: 10px;
+    }
+
+    .profile-card {
+        max-width: 100%;
+        padding: 20px;
+    }
+
+    /* Slightly smaller avatar on mobile */
+    .profile-avatar {
+        width: 80px;
+        height: 80px;
+    }
+
+    .avatar-initials {
+        font-size: 28px;
+    }
+
+    /* Smaller heading on mobile */
+    .profile-username {
+        font-size: 24px;
+    }
+
+    .profile-subtitle {
+        font-size: 14px;
+    }
 }
 
 /* === SISTEMA FILTRI MODULARE === */
