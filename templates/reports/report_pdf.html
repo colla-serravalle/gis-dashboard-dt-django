@@ -203,8 +203,8 @@
         <table class="signature-table">
             <tr>
                 <td style="width: 60%;"></td>
-                <td style="width: 40%; padding: 0px; text-align: center; vertical-align: top;">
-                    <p style="font-size: 10pt; margin: 0 0 10px 0; font-weight: bold;">L'operatore</p>
+                <td style="width: 40%; text-align: center; vertical-align: top;">
+                    <p style="font-size: 10pt; margin: 20px 0 10px 0; font-weight: bold;">L'operatore</p>
                     {% if signature_base64 %}
                     <img src="{{ signature_base64 }}" style="max-width: 250px; max-height: 100px; height: auto; margin: 10px 0;">
                     {% endif %}
@@ -212,7 +212,7 @@
                     <p style="font-size: 9pt; margin: 2px 0 0 0;">{{ nome_operatore }}</p>
                     {% endif %}
                     {% if data_rilevamento %}
-                    <p style="font-size: 9pt; margin: 2px 0 0 0; font-style: italic;">{{ data_rilevamento }}</p>
+                    <p style="font-size: 9pt; margin: 0; font-style: italic;">{{ data_rilevamento }}</p>
                     {% endif %}
                 </td>
             </tr>
