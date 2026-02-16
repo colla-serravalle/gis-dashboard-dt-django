@@ -240,10 +240,25 @@ LOGGING = {
             'backupCount': 5,
             'formatter': 'verbose',
         },
+        'arcgis_file': {
+            'level': 'DEBUG',
+            'class': 'config.settings.CompressedRotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'arcgis.log',
+            'maxBytes': 1024 * 1024 * 10,  # 10 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
         'console': {
             'level': LOG_LEVEL,
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'apps.core.services.arcgis': {
+            'handlers': ['arcgis_file', 'console'],
+            'level': 'DEBUG',
+            'propagate': False,
         },
     },
     'root': {

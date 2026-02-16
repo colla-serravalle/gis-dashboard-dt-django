@@ -41,9 +41,11 @@ class ArcGISService:
         # Check cache first
         cached_token = cache.get(ARCGIS_TOKEN_CACHE_KEY)
         if cached_token:
+            logger.debug("ArcGIS token found in cache")
             return cached_token
 
         # Generate new token
+        logger.info(f"Requesting new ArcGIS token from {self.portal_url} for user {self.username}")
         params = {
             'username': self.username,
             'password': self.password,
@@ -54,6 +56,7 @@ class ArcGISService:
         }
 
         try:
+            logger.debug(f"Sending token request with expiration: {self.token_expiration_minutes} minutes")
             response = requests.post(
                 self.portal_url,
                 data=params,
@@ -69,15 +72,17 @@ class ArcGISService:
                 raise ArcGISError(f"Token generation failed: {error_msg}")
 
             token = data['token']
+            logger.info(f"Successfully obtained ArcGIS token (expires in {self.token_expiration_minutes} minutes)")
 
             # Cache the token (expire 1 minute before actual expiration)
             cache_timeout = (self.token_expiration_minutes * 60) - 60
             cache.set(ARCGIS_TOKEN_CACHE_KEY, token, cache_timeout)
+            logger.debug(f"Token cached for {cache_timeout} seconds")
 
             return token
 
         except requests.RequestException as e:
-            logger.error(f"ArcGIS token request failed: {e}")
+            logger.error(f"ArcGIS token request failed: {str(e)}", exc_info=True)
             raise ArcGISError(f"Connection error: {e}") from e
 
     def query_layer(self, layer_id: int, where: str = "1=1", out_fields: str = "*") -> dict:
@@ -92,6 +97,9 @@ class ArcGISService:
         Returns:
             dict: Query results with 'features' list
         """
+        logger.info(f"Querying ArcGIS layer {layer_id} with WHERE clause: {where}")
+        logger.debug(f"Output fields: {out_fields}")
+        
         token = self.get_token()
 
         params = {
@@ -102,8 +110,10 @@ class ArcGISService:
         }
 
         url = f"{self.feature_service_url}/{layer_id}/query"
+        logger.debug(f"Query URL: {url}")
 
         try:
+            logger.debug("Sending query request to ArcGIS")
             response = requests.get(
                 url,
                 params=params,
@@ -111,10 +121,16 @@ class ArcGISService:
                 timeout=60,
             )
             response.raise_for_status()
-            return response.json()
+            result = response.json()
+            
+            features_count = len(result.get('features', []))
+            logger.info(f"Successfully queried layer {layer_id}, returned {features_count} features")
+            logger.debug(f"Response status code: {response.status_code}, Full response keys: {list(result.keys())}")
+            
+            return result
 
         except requests.RequestException as e:
-            logger.error(f"ArcGIS query failed: {e}")
+            logger.error(f"ArcGIS query failed for layer {layer_id}: {str(e)}", exc_info=True)
             return {'error': str(e)}
 
     def get_attachments(self, layer_id: int, object_id: int) -> dict:
@@ -128,6 +144,8 @@ class ArcGISService:
         Returns:
             dict: Attachment info with 'attachmentInfos' list
         """
+        logger.info(f"Fetching attachments for layer {layer_id}, object ID {object_id}")
+        
         token = self.get_token()
 
         url = f"{self.feature_service_url}/{layer_id}/{object_id}/attachments"
@@ -135,8 +153,10 @@ class ArcGISService:
             'f': 'json',
             'token': token
         }
+        logger.debug(f"Attachments URL: {url}")
 
         try:
+            logger.debug("Sending attachments request to ArcGIS")
             response = requests.get(
                 url,
                 params=params,
@@ -144,10 +164,16 @@ class ArcGISService:
                 timeout=30,
             )
             response.raise_for_status()
-            return response.json()
+            result = response.json()
+            
+            attachments_count = len(result.get('attachmentInfos', []))
+            logger.info(f"Successfully retrieved {attachments_count} attachments for layer {layer_id}, object ID {object_id}")
+            logger.debug(f"Response status code: {response.status_code}")
+            
+            return result
 
         except requests.RequestException as e:
-            logger.error(f"ArcGIS attachments request failed: {e}")
+            logger.error(f"ArcGIS attachments request failed for layer {layer_id}, object ID {object_id}: {str(e)}", exc_info=True)
             return {'error': str(e)}
 
     def get_attachment_content(self, layer_id: int, object_id: int, attachment_id: int) -> tuple:
@@ -162,12 +188,16 @@ class ArcGISService:
         Returns:
             tuple: (content_bytes, content_type) or (None, None) on error
         """
+        logger.info(f"Downloading attachment - layer {layer_id}, object ID {object_id}, attachment ID {attachment_id}")
+        
         token = self.get_token()
 
         url = f"{self.feature_service_url}/{layer_id}/{object_id}/attachments/{attachment_id}"
         params = {'token': token}
+        logger.debug(f"Attachment download URL: {url}")
 
         try:
+            logger.debug("Sending attachment download request to ArcGIS")
             response = requests.get(
                 url,
                 params=params,
@@ -177,13 +207,16 @@ class ArcGISService:
 
             if response.status_code == 200:
                 content_type = response.headers.get('Content-Type', 'application/octet-stream')
+                content_length = len(response.content)
+                logger.info(f"Successfully downloaded attachment {attachment_id}: {content_length} bytes, type: {content_type}")
+                logger.debug(f"Response headers: {dict(response.headers)}")
                 return response.content, content_type
             else:
-                logger.error(f"Attachment retrieval failed with status {response.status_code}")
+                logger.error(f"Attachment retrieval failed with status {response.status_code} for attachment {attachment_id}")
                 return None, None
 
         except requests.RequestException as e:
-            logger.error(f"Attachment retrieval failed: {e}")
+            logger.error(f"Attachment download failed for layer {layer_id}, object ID {object_id}, attachment ID {attachment_id}: {str(e)}", exc_info=True)
             return None, None
 
 
