@@ -13,6 +13,7 @@ urlpatterns = [
     path('api/', include('apps.reports.api_urls')),
     path('', include('apps.core.urls')),
     path('', include('apps.reports.urls')),
+    path('', include('apps.profiles.urls')),
 ]
 
 # Serve static files in development

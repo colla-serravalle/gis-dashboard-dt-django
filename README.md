@@ -4,12 +4,24 @@ Internal dashboard for managing and viewing field inspection reports, built with
 
 Migrated from a PHP application originally hosted on altervista.org.
 
+## Features
+
+- **Report Management** - Browse, filter, and search field inspection reports with pagination
+- **Report Detail View** - Comprehensive view of individual reports with location data, operator information, and inspection details
+- **PDF Export** - Generate PDF reports with company branding, signatures, and embedded photos
+- **ArcGIS Integration** - Real-time data synchronization with ArcGIS Enterprise feature layers
+- **Image Proxy** - Secure proxying of ArcGIS attachment images with automatic EXIF orientation correction
+- **User Profiles** - Authenticated user profile pages with avatar support
+- **Token Caching** - Intelligent ArcGIS token management with automatic refresh
+
 ## Tech Stack
 
 - **Python** 3.13+
-- **Django** 6.0.2
+- **Django** 6.0.2 (ASGI/WSGI ready)
 - **ArcGIS Enterprise** REST API (feature layers, tokens, attachments)
 - **SQLite** (local auth/session storage)
+- **xhtml2pdf** 0.2.16+ (PDF generation)
+- **Pillow** 11.0.0+ (image processing and EXIF handling)
 - **uv** (package manager)
 
 ## Project Structure
@@ -19,21 +31,31 @@ gis-dashboard-dt-parent/
 ├── config/                # Django project configuration
 │   ├── settings.py
 │   ├── urls.py
-│   └── wsgi.py
+│   ├── asgi.py           # ASGI server configuration
+│   └── wsgi.py           # WSGI server configuration
 ├── apps/
 │   ├── accounts/          # Authentication (login/logout)
-│   ├── core/              # Shared services
+│   ├── core/              # Shared services and homepage
 │   │   └── services/
 │   │       └── arcgis.py  # ArcGIS REST API client with token caching
+│   ├── profiles/          # User profile pages
+│   │   ├── views.py       # Profile view
+│   │   └── urls.py
 │   └── reports/           # Main application
 │       ├── mappings.py    # Field labels and coded value mappings
+│       ├── services/      # Business logic services
+│       │   ├── image_utils.py   # Image fetching and processing
+│       │   └── report_data.py   # Report data aggregation
 │       ├── views/
-│       │   ├── pages.py   # Page views (home, list, detail)
-│       │   └── api.py     # JSON API endpoints
+│       │   ├── pages.py   # Page views (list, detail)
+│       │   ├── api.py     # JSON API endpoints
+│       │   └── pdf.py     # PDF export view
 │       ├── urls.py        # Page URL routes
 │       └── api_urls.py    # API URL routes
 ├── templates/             # Django HTML templates
 ├── static/                # CSS, JS, images
+├── docs/                  # Documentation and design plans
+├── logs/                  # Application logs (django.log)
 ├── manage.py
 └── pyproject.toml
 ```
@@ -103,6 +125,8 @@ A launch configuration is provided in `.vscode/launch.json`. Press **F5** to sta
 | `/` | Home page |
 | `/reports/` | Report list with filtering and pagination |
 | `/reports/detail/?id=<uniquerowid>` | Report detail view |
+| `/reports/pdf/?rowid=<uniquerowid>` | Export report as PDF |
+| `/profiles/` | User profile page (login required) |
 | `/auth/login/` | Login page |
 | `/auth/logout/` | Logout |
 | `/admin/` | Django admin panel |
@@ -161,6 +185,16 @@ The `apps/core/services/arcgis.py` module provides an `ArcGISService` class that
 - **Feature layer queries** - Queries ArcGIS feature layers with configurable WHERE clauses and field selection.
 - **Attachment retrieval** - Fetches attachment metadata and binary content for feature images.
 - **SSL** - Uses `truststore` to delegate SSL verification to the OS certificate store, ensuring compatibility with corporate proxies and internal CAs.
+
+### PDF Export
+
+The `apps/reports/views/pdf.py` module handles report PDF generation using xhtml2pdf:
+
+- **Template-based rendering** - Uses Django templates for consistent PDF layout
+- **Embedded images** - Converts ArcGIS attachments and static assets to base64-encoded data URIs
+- **EXIF orientation** - Automatically corrects photo orientation using Pillow's EXIF processing
+- **Parallel fetching** - Uses ThreadPoolExecutor to fetch multiple photos concurrently
+- **Branding** - Includes company logo, operator signature, and formatted report data
 
 ### Field Mappings
 

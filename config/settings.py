@@ -222,6 +222,55 @@ class CompressedRotatingFileHandler(logging.handlers.RotatingFileHandler):
         os.remove(source)
 
 
+class SuppressBrowserGenerated404Filter(logging.Filter):
+    """
+    Logging filter to suppress 404 warnings for known browser-generated requests.
+
+    Filters out harmless 404s from paths like:
+    - /.well-known/* (Chrome DevTools, security.txt, etc.)
+    - /favicon.ico (browser automatic request)
+    - /robots.txt (search engine crawlers)
+    - /apple-touch-icon*.png (iOS Safari)
+
+    Only affects WARNING-level 404 logs from django.request logger.
+    Legitimate 404s (broken links with referrers) are still logged.
+    """
+
+    # Paths to suppress - easily extensible
+    IGNORED_PATHS = [
+        '/.well-known/',          # Catch all .well-known requests (RFC 8615)
+        '/favicon.ico',
+        '/robots.txt',
+        '/apple-touch-icon',      # Matches apple-touch-icon.png, apple-touch-icon-precomposed.png, etc.
+        '/browserconfig.xml',     # Windows/IE tiles
+        '/site.webmanifest',      # PWA manifest
+    ]
+
+    def filter(self, record):
+        """
+        Return False to suppress the log record, True to allow it.
+
+        Args:
+            record: LogRecord instance from django.request logger
+
+        Returns:
+            bool: False if this is a browser-generated 404 to suppress, True otherwise
+        """
+        # Only filter 404s (status_code 404 warnings)
+        if not hasattr(record, 'status_code') or record.status_code != 404:
+            return True
+
+        # Check if request path matches any ignored patterns
+        if hasattr(record, 'request'):
+            path = record.request.path
+
+            for ignored_path in self.IGNORED_PATHS:
+                if path.startswith(ignored_path):
+                    return False  # Suppress this log
+
+        return True  # Allow all other logs
+
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -229,6 +278,12 @@ LOGGING = {
         'verbose': {
             'format': '{levelname} {asctime} {name} {message}',
             'style': '{',
+        },
+    },
+    'filters': {
+        # Suppress browser-generated 404 warnings (favicon, .well-known, etc.)
+        'suppress_browser_404s': {
+            '()': 'config.settings.SuppressBrowserGenerated404Filter',
         },
     },
     'handlers': {
@@ -239,11 +294,21 @@ LOGGING = {
             'maxBytes': 1024 * 1024 * 10,  # 10 MB
             'backupCount': 5,
             'formatter': 'verbose',
+            'filters': ['suppress_browser_404s'],
         },
         'console': {
             'level': LOG_LEVEL,
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
+            'filters': ['suppress_browser_404s'],
+        },
+    },
+    'loggers': {
+        # Explicitly configure django.request logger for clarity
+        'django.request': {
+            'handlers': ['console', 'file'],
+            'level': 'WARNING',  # Keep at WARNING to catch 404s and 500s
+            'propagate': False,
         },
     },
     'root': {
