@@ -296,6 +296,14 @@ LOGGING = {
             'formatter': 'verbose',
             'filters': ['suppress_browser_404s'],
         },
+        'arcgis_file': {
+            'level': 'DEBUG',
+            'class': 'config.settings.CompressedRotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'arcgis.log',
+            'maxBytes': 1024 * 1024 * 10,  # 10 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
         'console': {
             'level': LOG_LEVEL,
             'class': 'logging.StreamHandler',
@@ -308,6 +316,13 @@ LOGGING = {
         'django.request': {
             'handlers': ['console', 'file'],
             'level': 'WARNING',  # Keep at WARNING to catch 404s and 500s
+            'propagate': False,
+        },
+    },
+    'loggers': {
+        'apps.core.services.arcgis': {
+            'handlers': ['arcgis_file', 'console'],
+            'level': 'DEBUG',
             'propagate': False,
         },
     },

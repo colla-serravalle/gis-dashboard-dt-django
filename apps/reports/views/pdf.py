@@ -83,8 +83,8 @@ def export_pdf(request):
     context = {
         'company_logo_base64': company_logo_base64,
         'object_id': data['object_id'],
-        'globalid': raw.get('globalid', 'N/A'),
-        'report_id': data['report_id'],
+        'globalid': raw.get('globalid', 'N/A').strip('{}'),
+        'report_id': data['report_id'].strip('{}'),
         'data_rilevamento': data_rilevamento,
         'nome_operatore': nome_operatore,
         'location_data': data['location_data'],

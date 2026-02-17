@@ -8,7 +8,7 @@
             margin: 20mm 15mm 20mm 15mm;
         }
         body {
-            font-family: Helvetica, Arial, sans-serif;
+            font-family: Arial, sans-serif;
             font-size: 11pt;
             color: #333;
             margin: 0;
@@ -17,14 +17,19 @@
         h1, h2 {
             color: rgb(0, 89, 150);
             border-bottom: 1px solid #ccc;
-            padding-bottom: 5px;
+            padding-bottom: 3px;
+            font-weight: 500;
         }
         h1 {
-            font-size: 18pt;
+            font-size: 22pt;
         }
         h2 {
             font-size: 14pt;
             margin-top: 25px;
+        }
+        .section h2 {
+            margin-top: 20px;
+            -pdf-keep-with-next: true;
         }
         .logo {
             width: 180px;
@@ -34,11 +39,12 @@
             background-color: #f8f9fa;
             padding: 10px;
             border-left: 4px solid rgb(0, 89, 150);
-            margin-bottom: 20px;
+            margin-top: 15px;
+            margin-bottom: 35px;
         }
         .report-info p {
             font-size: 8pt;
-            margin: 2px 0;
+            margin: 0;
         }
         table {
             width: 100%;
@@ -47,8 +53,10 @@
         }
         table th, table td {
             border: 1px solid #ddd;
-            padding: 8px;
+            padding: 4px;
             text-align: left;
+            vertical-align: middle;
+            line-height: 1;
         }
         table th {
             background-color: #f2f2f2;
@@ -56,6 +64,11 @@
         }
         .section {
             margin-top: 25px;
+            display: table;
+            width: 100%;
+        }
+        .repeat-table {
+            font-size: 9pt;
         }
         .photo-table {
             width: 100%;
@@ -76,9 +89,11 @@
             margin-bottom: 5px;
         }
         .photo-caption {
-            font-size: 11pt;
+            font-size: 8pt;
             margin: 5px 0 0 0;
             padding: 0;
+            font-style: italic;
+            color:#333;
         }
         .signature-table {
             width: 100%;
@@ -102,7 +117,8 @@
     <div class="report-info">
         <p><strong>Global ID:</strong> {{ globalid }}</p>
         <p><strong>Object ID:</strong> {{ object_id }}</p>
-        <p><strong>ID Record:</strong> {{ report_id }}</p>
+        <!-- Viene nascosto l'id record (rowId in ArcGIS) in quanto serve solo come chiave tra le righe di ogni report e le relative tabelle repeat. -->
+        <!-- <p><strong>ID Record:</strong> {{ report_id }}</p> -->
     </div>
 
     <!-- Localizzazione intervento -->
@@ -143,7 +159,7 @@
     <div class="section">
         <h2>Dati pavimentazioni</h2>
         {% if pk_pav_data %}
-        <table>
+        <table class="repeat-table">
             <tr>
                 {% for header in pk_pav_headers %}
                 <th>{{ header }}</th>
@@ -166,7 +182,7 @@
     <div class="section">
         <h2>Dati imprese</h2>
         {% if impresa_data %}
-        <table>
+        <table class="repeat-table">
             <tr>
                 {% for header in impresa_headers %}
                 <th>{{ header }}</th>
@@ -191,16 +207,16 @@
         <table class="signature-table">
             <tr>
                 <td style="width: 60%;"></td>
-                <td style="width: 40%; padding: 15px; text-align: center; vertical-align: top;">
-                    <p style="font-size: 10pt; margin: 0 0 10px 0; font-weight: bold;">L'operatore</p>
+                <td style="width: 40%; text-align: center; vertical-align: top;">
+                    <p style="font-size: 10pt; margin: 20px 0 10px 0; font-weight: bold;">L'operatore</p>
                     {% if signature_base64 %}
                     <img src="{{ signature_base64 }}" style="max-width: 250px; max-height: 100px; height: auto; margin: 10px 0;">
                     {% endif %}
                     {% if nome_operatore %}
-                    <p style="font-size: 9pt; margin: 10px 0 0 0;">{{ nome_operatore }}</p>
+                    <p style="font-size: 9pt; margin: 2px 0 0 0;">{{ nome_operatore }}</p>
                     {% endif %}
                     {% if data_rilevamento %}
-                    <p style="font-size: 9pt; margin: 5px 0 0 0; font-style: italic;">{{ data_rilevamento }}</p>
+                    <p style="font-size: 9pt; margin: 0; font-style: italic;">{{ data_rilevamento }}</p>
                     {% endif %}
                 </td>
             </tr>

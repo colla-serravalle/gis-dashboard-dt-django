@@ -64,6 +64,7 @@ FIELD_LABELS = {
     'nome_impresa': 'Nome impresa',
     'rapp_contrattuale': 'Rapporto contrattuale',
     'n_squadra_pronto_int': 'Squadre pronto intervento',
+    'cantierizzazione': 'Installazione cantiere',
     'attivita': 'Attività realizzata',
     'n_uomini': 'N° uomini impiegati',
     'n_mezzi': 'N° mezzi impiegati',
