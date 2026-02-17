@@ -117,7 +117,8 @@
     <div class="report-info">
         <p><strong>Global ID:</strong> {{ globalid }}</p>
         <p><strong>Object ID:</strong> {{ object_id }}</p>
-        <p><strong>ID Record:</strong> {{ report_id }}</p>
+        <!-- Viene nascosto l'id record (rowId in ArcGIS) in quanto serve solo come chiave tra le righe di ogni report e le relative tabelle repeat. -->
+        <!-- <p><strong>ID Record:</strong> {{ report_id }}</p> -->
     </div>
 
     <!-- Localizzazione intervento -->
