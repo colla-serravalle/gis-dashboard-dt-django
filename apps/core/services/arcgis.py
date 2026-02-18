@@ -122,11 +122,17 @@ class ArcGISService:
             )
             response.raise_for_status()
             result = response.json()
-            
+
+            logger.debug(f"Response status code: {response.status_code}, Full response keys: {list(result.keys())}")
+
+            if 'error' in result and 'features' not in result:
+                error_msg = result['error'].get('message', str(result['error']))
+                logger.error(f"ArcGIS query returned an error for layer {layer_id}: {error_msg}")
+                return {'error': error_msg}
+
             features_count = len(result.get('features', []))
             logger.info(f"Successfully queried layer {layer_id}, returned {features_count} features")
-            logger.debug(f"Response status code: {response.status_code}, Full response keys: {list(result.keys())}")
-            
+
             return result
 
         except requests.RequestException as e:

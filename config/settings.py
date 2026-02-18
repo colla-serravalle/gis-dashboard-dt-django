@@ -318,8 +318,6 @@ LOGGING = {
             'level': 'WARNING',  # Keep at WARNING to catch 404s and 500s
             'propagate': False,
         },
-    },
-    'loggers': {
         'apps.core.services.arcgis': {
             'handlers': ['arcgis_file', 'console'],
             'level': 'DEBUG',

@@ -1,6 +1,7 @@
 """API views for reports app."""
 
 import logging
+from datetime import datetime, timedelta
 from django.http import JsonResponse, HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_GET
@@ -33,6 +34,48 @@ def normalize_filter(value):
     return []
 
 
+def build_where_clause(filters):
+    """
+    Build an ArcGIS SQL WHERE clause from the parsed filters dict.
+
+    String fields use IN (...) for multiple values or = for a single value.
+    Date fields are converted from YYYY-MM-DD to millisecond timestamps.
+
+    Returns:
+        str: SQL WHERE clause (never empty — defaults to '1=1')
+    """
+    conditions = []
+
+    # String equality / IN filters
+    string_fields = ['nome_operatore', 'tratta', 'tipologia_appalto']
+    for field in string_fields:
+        values = filters.get(field, [])
+        if not values:
+            continue
+        escaped = [v.replace("'", "''") for v in values]
+        if len(escaped) == 1:
+            conditions.append(f"{field} = '{escaped[0]}'")
+        else:
+            in_list = ', '.join(f"'{v}'" for v in escaped)
+            conditions.append(f"{field} IN ({in_list})")
+
+    # Date range — ArcGIS accepts TIMESTAMP 'YYYY-MM-DD HH:MM:SS' literals
+    date_from = filters.get('date_from', '')
+    date_to = filters.get('date_to', '')
+
+    if date_from:
+        dt = datetime.strptime(date_from, '%Y-%m-%d')
+        conditions.append(f"data_rilevamento >= TIMESTAMP '{dt.strftime('%Y-%m-%d %H:%M:%S')}'")
+
+    if date_to:
+        # Use start of the next day as an exclusive upper bound
+        dt = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
+        conditions.append(f"data_rilevamento < TIMESTAMP '{dt.strftime('%Y-%m-%d %H:%M:%S')}'")
+
+    return ' AND '.join(conditions) if conditions else '1=1'
+
+# Not used for now, the query parameters are built directly in the query_feature_layer call, 
+# but we keep this function for potential future use if we want to fetch more data and filter in Python instead of ArcGIS
 def apply_filters(attributes, filters):
     """
     Apply filters to a record.
@@ -149,22 +192,20 @@ def get_data(request):
             'date_to': request.GET.get('date_to', '').strip(),
         }
 
-        # Query feature layer
-        result = query_feature_layer(0)
+        # Build server-side WHERE clause and query only matching features
+        where = build_where_clause(filters)
+        logger.debug(f"ArcGIS WHERE clause: {where}")
+        result = query_feature_layer(0, where)
 
         if 'error' in result:
             return JsonResponse({'error': result['error']}, status=500)
 
         features = result.get('features', [])
 
-        # Process and filter records
+        # Build records from returned features (all already match the filters)
         records = []
         for feature in features:
             attrs = feature.get('attributes', {})
-
-            # Apply filters
-            if not apply_filters(attrs, filters):
-                continue
 
             # Build record with mapped values
             record = {
