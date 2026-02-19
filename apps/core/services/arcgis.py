@@ -6,6 +6,7 @@ Ported from PHP ArcGISService.php
 
 import time
 import logging
+import threading
 import requests
 from django.conf import settings
 from django.core.cache import cache
@@ -18,6 +19,9 @@ ARCGIS_TOKEN_CACHE_KEY = 'arcgis_token'
 
 class ArcGISService:
     """Service class for interacting with ArcGIS REST API."""
+    
+    # Class-level lock for thread-safe token generation
+    _token_lock = threading.Lock()
 
     def __init__(self):
         self.portal_url = settings.ARCGIS_PORTAL_URL
@@ -31,6 +35,7 @@ class ArcGISService:
     def get_token(self) -> str:
         """
         Get ArcGIS token, using cache if available and valid.
+        Uses double-checked locking to prevent race condition.
 
         Returns:
             str: Valid ArcGIS authentication token
@@ -38,52 +43,60 @@ class ArcGISService:
         Raises:
             ArcGISError: If token generation fails
         """
-        # Check cache first
+        # First check: Quick cache lookup without lock (fast path)
         cached_token = cache.get(ARCGIS_TOKEN_CACHE_KEY)
         if cached_token:
             logger.debug("ArcGIS token found in cache")
             return cached_token
 
-        # Generate new token
-        logger.info(f"Requesting new ArcGIS token from {self.portal_url} for user {self.username}")
-        params = {
-            'username': self.username,
-            'password': self.password,
-            'client': 'referer',
-            'referer': self.referer,
-            'expiration': self.token_expiration_minutes,
-            'f': 'json'
-        }
+        # Second check: Use lock to prevent race condition
+        with self._token_lock:
+            # Double-check inside the lock (another thread might have generated it)
+            cached_token = cache.get(ARCGIS_TOKEN_CACHE_KEY)
+            if cached_token:
+                logger.debug("ArcGIS token found in cache (after lock)")
+                return cached_token
 
-        try:
-            logger.debug(f"Sending token request with expiration: {self.token_expiration_minutes} minutes")
-            response = requests.post(
-                self.portal_url,
-                data=params,
-                headers=self.headers,
-                timeout=30,
-            )
-            response.raise_for_status()
-            data = response.json()
+            # Generate new token (only one thread will reach here)
+            logger.info(f"Requesting new ArcGIS token from {self.portal_url} for user {self.username}")
+            params = {
+                'username': self.username,
+                'password': self.password,
+                'client': 'referer',
+                'referer': self.referer,
+                'expiration': self.token_expiration_minutes,
+                'f': 'json'
+            }
 
-            if 'token' not in data:
-                error_msg = data.get('error', {}).get('message', 'Unknown error')
-                logger.error(f"ArcGIS token generation failed: {error_msg}")
-                raise ArcGISError(f"Token generation failed: {error_msg}")
+            try:
+                logger.debug(f"Sending token request with expiration: {self.token_expiration_minutes} minutes")
+                response = requests.post(
+                    self.portal_url,
+                    data=params,
+                    headers=self.headers,
+                    timeout=30,
+                )
+                response.raise_for_status()
+                data = response.json()
 
-            token = data['token']
-            logger.info(f"Successfully obtained ArcGIS token (expires in {self.token_expiration_minutes} minutes)")
+                if 'token' not in data:
+                    error_msg = data.get('error', {}).get('message', 'Unknown error')
+                    logger.error(f"ArcGIS token generation failed: {error_msg}")
+                    raise ArcGISError(f"Token generation failed: {error_msg}")
 
-            # Cache the token (expire 1 minute before actual expiration)
-            cache_timeout = (self.token_expiration_minutes * 60) - 60
-            cache.set(ARCGIS_TOKEN_CACHE_KEY, token, cache_timeout)
-            logger.debug(f"Token cached for {cache_timeout} seconds")
+                token = data['token']
+                logger.info(f"Successfully obtained ArcGIS token (expires in {self.token_expiration_minutes} minutes)")
 
-            return token
+                # Cache the token (expire 1 minute before actual expiration)
+                cache_timeout = (self.token_expiration_minutes * 60) - 60
+                cache.set(ARCGIS_TOKEN_CACHE_KEY, token, cache_timeout)
+                logger.debug(f"Token cached for {cache_timeout} seconds")
 
-        except requests.RequestException as e:
-            logger.error(f"ArcGIS token request failed: {str(e)}", exc_info=True)
-            raise ArcGISError(f"Connection error: {e}") from e
+                return token
+
+            except requests.RequestException as e:
+                logger.error(f"ArcGIS token request failed: {str(e)}", exc_info=True)
+                raise ArcGISError(f"Connection error: {e}") from e
 
     def query_layer(self, layer_id: int, where: str = "1=1", out_fields: str = "*") -> dict:
         """
