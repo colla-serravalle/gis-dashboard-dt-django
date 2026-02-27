@@ -137,7 +137,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Authentication settings
 LOGIN_URL = '/auth/login/'
 LOGIN_REDIRECT_URL = '/'
-LOGOUT_REDIRECT_URL = '/auth/login/'
+LOGOUT_REDIRECT_URL = LOGIN_URL
 
 # Session settings
 SESSION_COOKIE_AGE = int(os.getenv('SESSION_TIMEOUT', 3600))  # 1 hour default
@@ -257,12 +257,12 @@ class SuppressBrowserGenerated404Filter(logging.Filter):
             bool: False if this is a browser-generated 404 to suppress, True otherwise
         """
         # Only filter 404s (status_code 404 warnings)
-        if not hasattr(record, 'status_code') or record.status_code != 404:
+        if not hasattr(record, 'status_code') or record.status_code != 404: # type: ignore
             return True
 
         # Check if request path matches any ignored patterns
         if hasattr(record, 'request'):
-            path = record.request.path
+            path = record.request.path # type: ignore
 
             for ignored_path in self.IGNORED_PATHS:
                 if path.startswith(ignored_path):
