@@ -7,10 +7,23 @@ Migrated from PHP application.
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+import ssl
 import truststore
 
-# Use the OS certificate store for SSL verification (fixes corporate proxy/internal CA issues)
+# Capture original ssl.SSLContext BEFORE truststore replaces it
+_OriginalSSLContext = ssl.SSLContext
+
+# Use the OS certificate store for SSL verification (fixes corporate proxy/internal CA issues).
+# inject_into_ssl() patches both ssl.SSLContext and urllib3.util.ssl_.SSLContext.
 truststore.inject_into_ssl()
+
+# truststore.SSLContext.__init__ never calls super().__init__(), so the inherited C
+# structure is not initialized — it can't be used directly as a server SSL context.
+# Werkzeug creates the dev HTTPS server context via ssl.SSLContext(PROTOCOL_TLS_SERVER).
+# Fix: restore ssl.SSLContext to the original so Werkzeug gets a proper server context.
+# urllib3 retains its own truststore-patched reference, so ArcGIS/outbound HTTPS
+# requests still go through truststore for corporate CA verification.
+ssl.SSLContext = _OriginalSSLContext
 
 # Load environment variables
 load_dotenv()
@@ -40,6 +53,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # Third-party
+    'django_extensions',
+    'mozilla_django_oidc',
     # Local apps
     'apps.accounts',
     'apps.core',
@@ -52,6 +68,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'mozilla_django_oidc.middleware.SessionRefresh',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -135,9 +152,34 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # Authentication settings
+AUTHENTICATION_BACKENDS = [
+    'apps.accounts.auth.AzureOIDCBackend',
+    'apps.accounts.auth.SuperuserOnlyModelBackend',
+]
+# Redirect unauthenticated users to the unified login page
 LOGIN_URL = '/auth/login/'
 LOGIN_REDIRECT_URL = '/'
-LOGOUT_REDIRECT_URL = LOGIN_URL
+LOGOUT_REDIRECT_URL = '/'
+
+# =============================================================================
+# Azure AD / OIDC Configuration (mozilla-django-oidc)
+# =============================================================================
+
+AZURE_TENANT_ID = os.environ.get('AZURE_TENANT_ID')
+
+OIDC_RP_CLIENT_ID = os.environ.get('AZURE_CLIENT_ID')
+OIDC_RP_CLIENT_SECRET = os.environ.get('AZURE_CLIENT_SECRET')
+OIDC_RP_SIGN_ALGO = 'RS256'
+OIDC_RP_SCOPES = 'openid email profile'
+
+OIDC_OP_JWKS_ENDPOINT = f'https://login.microsoftonline.com/{AZURE_TENANT_ID}/discovery/v2.0/keys'
+OIDC_OP_AUTHORIZATION_ENDPOINT = f'https://login.microsoftonline.com/{AZURE_TENANT_ID}/oauth2/v2.0/authorize'
+OIDC_OP_TOKEN_ENDPOINT = f'https://login.microsoftonline.com/{AZURE_TENANT_ID}/oauth2/v2.0/token'
+OIDC_OP_USER_ENDPOINT = 'https://graph.microsoft.com/oidc/userinfo'
+
+
+# Silently renew OIDC token every 15 minutes via SessionRefresh middleware
+OIDC_RENEW_ID_TOKEN_EXPIRY_SECONDS = 900
 
 # Session settings
 SESSION_COOKIE_AGE = int(os.getenv('SESSION_TIMEOUT', 3600))  # 1 hour default
