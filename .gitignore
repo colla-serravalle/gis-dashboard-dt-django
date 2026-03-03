@@ -30,3 +30,9 @@ logs/
 
 # Chroma mem folder
 Userscolla.claude-memchroma/
+
+# Certificates and keys
+.certs/
+*.pfx
+*.pem
+*.key

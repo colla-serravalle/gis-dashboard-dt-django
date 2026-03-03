@@ -121,4 +121,4 @@ def logout_view(request):
     if request.user.is_authenticated:
         logger.info(f"User {request.user.username} logged out")
     logout(request)
-    return redirect('accounts:login')
+    return redirect(settings.LOGIN_URL)
