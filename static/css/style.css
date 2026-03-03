@@ -674,6 +674,36 @@ table tbody tr:last-child td {
     opacity: 1;
 }
 
+/* Icon-only compact variant for table action buttons */
+.action-icon-only {
+    padding: 9px 11px;
+    gap: 0;
+}
+
+.action-icon-only:hover i {
+    transform: scale(1.15);
+}
+
+/* Download action color variant (tonal green) */
+.action-download {
+    background: var(--serravalle-dark-green-clr);
+    color: var(--base-clr);
+    box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.3), 0px 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.action-download:hover {
+    background: var(--serravalle-dark-green-clr);
+    color: var(--base-clr);
+    box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.3), 0px 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Flex container for multiple action buttons in a table cell */
+.action-cell {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
 /*FINE STILE TABELLA*/
 
 /*INIZIO STILE TABELLA LISTA DATI (es. info profilo) - Material Design 3*/

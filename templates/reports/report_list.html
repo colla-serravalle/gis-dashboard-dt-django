@@ -6,6 +6,7 @@
 {% block extra_head %}
 <script type="text/javascript" src="{% static 'js/filter-manager.js' %}" defer></script>
 <script type="text/javascript" src="{% static 'js/table-sorter.js' %}" defer></script>
+<script type="text/javascript" src="{% static 'js/pdf-download.js' %}" defer></script>
 {% endblock %}
 
 {% block content %}
@@ -110,7 +111,21 @@
                 <td>${escapeHtml(row.tratta)}</td>
                 <td>${escapeHtml(row.tipologia_appalto)}</td>
                 <td>${escapeHtml(row.data_rilevamento)}</td>
-                <td><a href="{% url 'reports:report_detail' %}?id=${encodeURIComponent(row.uniquerowid)}" class="link-tabella action-generic"><i class="fa-solid fa-square-up-right"></i>Apri</a></td>
+                <td>
+                    <div class="action-cell">
+                        <a href="/reports/pdf/?rowid=${encodeURIComponent(row.uniquerowid)}"
+                           class="link-tabella action-generic action-icon-only action-download"
+                           title="Scarica PDF"
+                           download>
+                            <i class="fa-solid fa-file-arrow-down"></i>
+                        </a>
+                        <a href="{% url 'reports:report_detail' %}?id=${encodeURIComponent(row.uniquerowid)}"
+                           class="link-tabella action-generic action-icon-only"
+                           title="Apri Report">
+                            <i class="fa-solid fa-eye"></i>
+                        </a>
+                    </div>
+                </td>
             `;
             tbody.appendChild(tr);
         });
@@ -212,6 +227,53 @@
         });
 
         loadData(1);
+
+        // PDF download with loading overlay (event delegation on dynamically rendered rows)
+        document.getElementById('tableBody').addEventListener('click', function(e) {
+            const btn = e.target.closest('.action-download');
+            if (!btn) return;
+            e.preventDefault();
+
+            const url = btn.href;
+            const rowid = new URL(url).searchParams.get('rowid');
+
+            showLoadingOverlay();
+
+            fetch(url, {
+                method: 'GET',
+                headers: { 'Accept': 'application/pdf' }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Errore nella generazione del PDF');
+                return response.blob();
+            })
+            .then(blob => {
+                const blobUrl = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = 'verbale_sopralluogo_' + rowid + '.pdf';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(blobUrl);
+                setTimeout(() => hideLoadingOverlay(), 500);
+            })
+            .catch(error => {
+                console.error('Errore durante il download del PDF:', error);
+                hideLoadingOverlay();
+                showErrorMessage('Si è verificato un errore durante la generazione del PDF. Riprova.');
+            });
+        });
     });
 </script>
+
+<div id="pdf-loading-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; justify-content:center; align-items:center; opacity:0; transition:opacity 0.3s ease;">
+    <div style="background:white; padding:32px 48px; border-radius:16px; text-align:center; box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+        <div style="width:48px; height:48px; border:4px solid #e0e0e0; border-top:4px solid #4caf50; border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 16px;"></div>
+        <p style="margin:0; font-size:16px; color:#333;">Generazione PDF in corso...</p>
+    </div>
+</div>
+<style>
+    @keyframes spin { to { transform: rotate(360deg); } }
+</style>
 {% endblock %}
