@@ -114,13 +114,13 @@
                 <td>
                     <div class="action-cell">
                         <a href="/reports/pdf/?rowid=${encodeURIComponent(row.uniquerowid)}"
-                           class="link-tabella action-generic action-icon-only action-download"
+                           class="link-tabella action-icon-only action-download"
                            title="Scarica PDF"
                            download>
                             <i class="fa-solid fa-file-arrow-down"></i>
                         </a>
                         <a href="{% url 'reports:report_detail' %}?id=${encodeURIComponent(row.uniquerowid)}"
-                           class="link-tabella action-generic action-icon-only"
+                           class="link-tabella action-icon-only"
                            title="Apri Report">
                             <i class="fa-solid fa-eye"></i>
                         </a>
