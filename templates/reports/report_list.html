@@ -106,7 +106,7 @@
         data.forEach(row => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${escapeHtml(row.uniquerowid)}</td>
+                <td>${escapeHtml(row.uniquerowid.replace(/^{|}$/g, ''))}</td>
                 <td>${escapeHtml(row.nome_operatore)}</td>
                 <td>${escapeHtml(row.tratta)}</td>
                 <td>${escapeHtml(row.tipologia_appalto)}</td>
