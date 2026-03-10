@@ -21,7 +21,15 @@
     <h1>Dettaglio report #{{ object_id }}</h1>
 </div>
 
-<div id="route-logo-container">
+<div id="report-main-ids-container">
+    Report n. {{ object_id }}
+</div>
+
+<div id="report-main-ids-container">
+    ID: {{ report_id|cut:"{"|cut:"}"|default:"N/A" }}
+</div>
+
+<div id="report-main-ids-container">
     Tratta: {% route_logo tratta_code %}
 </div>
 

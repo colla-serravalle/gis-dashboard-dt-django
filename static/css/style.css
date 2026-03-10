@@ -855,15 +855,15 @@ a.link-testo:hover::before{
 /* FINE stile paginazione */
 
 /* INIZIO stile logo tratta */
-#route-logo-container{
-    display: flex;
+#report-main-ids-container{
+    display: inline-flex;
     flex-direction: row;
     justify-content: flex-start;
     align-items: center;
     gap: 15px;
     border-radius: 1em;
     border: 1px solid var(--secondary-text-clr);
-    padding: 5px;
+    padding: 5px 10px 5px 10px;
     width: fit-content;
     font-weight: bold;
     margin: 5px 0;
