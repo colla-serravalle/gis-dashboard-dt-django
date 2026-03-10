@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'mozilla_django_oidc',
     # Local apps
     'apps.accounts',
+    'apps.authorization',
     'apps.core',
     'apps.reports',
 ]
@@ -69,6 +70,8 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'mozilla_django_oidc.middleware.SessionRefresh',
+    # Service-level access control (runs after user is authenticated)
+    'apps.authorization.middleware.ServiceAccessMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -85,6 +88,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'apps.authorization.context_processors.accessible_services',
             ],
         },
     },
@@ -185,6 +189,32 @@ OIDC_RENEW_ID_TOKEN_EXPIRY_SECONDS = 900
 SESSION_COOKIE_AGE = int(os.getenv('SESSION_TIMEOUT', 3600))  # 1 hour default
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_SAVE_EVERY_REQUEST = True  # Update session on every request
+
+
+# =============================================================================
+# Service Authorization Configuration
+# =============================================================================
+
+# URL namespaces (app_name) that bypass service access checks
+SERVICE_AUTH_EXEMPT_APPS = [
+    "authorization",
+    "admin",
+    "oidc",
+    "accounts",
+]
+
+# URL prefixes that bypass service access checks
+SERVICE_AUTH_EXEMPT_URLS = [
+    "/oidc/",
+    "/admin/",
+    "/static/",
+    "/health/",
+    "/auth/",
+    "/accounts/",
+]
+
+# Policy for apps without a Service record: "allow" or "deny"
+SERVICE_AUTH_DEFAULT_POLICY = "deny"
 
 
 # =============================================================================

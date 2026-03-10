@@ -13,6 +13,7 @@ Migrated from a PHP application originally hosted on altervista.org.
 - **Image Proxy** - Secure proxying of ArcGIS attachment images with automatic EXIF orientation correction
 - **User Profiles** - Authenticated user profile pages with avatar support
 - **Token Caching** - Intelligent ArcGIS token management with automatic refresh
+- **Service Authorization** - Group-based access control per app/service with middleware enforcement and admin management
 
 ## Tech Stack
 
@@ -41,6 +42,13 @@ gis-dashboard-dt-parent/
 │   ├── profiles/          # User profile pages
 │   │   ├── views.py       # Profile view
 │   │   └── urls.py
+│   ├── authorization/     # Service-level access control
+│   │   ├── models.py      # Service model (app_label → groups mapping)
+│   │   ├── middleware.py  # ServiceAccessMiddleware (request-level enforcement)
+│   │   ├── decorators.py  # @require_service view decorator
+│   │   ├── context_processors.py  # Injects accessible services into templates
+│   │   ├── admin.py       # Admin UI for managing services and groups
+│   │   └── management/commands/seed_services.py  # Seed/update service definitions
 │   └── reports/           # Main application
 │       ├── mappings.py    # Field labels and coded value mappings
 │       ├── services/      # Business logic services
@@ -105,9 +113,17 @@ gis-dashboard-dt-parent/
    uv run python manage.py createsuperuser
    ```
 
-6. Start the development server:
+6. Seed services and groups:
+   ```bash
+   uv run python manage.py seed_services
+   ```
+
+   This creates the `Service` records (Dashboard, Reports, Reports API, Profiles) and their associated Django groups (`dashboard_users`, `reports_users`, `managers`). Assign users to the appropriate groups via the Django admin.
+
+7. Start the development server:
    ```bash
    uv run python manage.py runserver
+   uv run python manage.py runserver_plus --cert-file .certs/localhost.pem --key-file .certs/localhost.key 0.0.0.0:8443
    ```
 
    The application will be available at http://127.0.0.1:8000/
@@ -196,6 +212,27 @@ The `apps/reports/views/pdf.py` module handles report PDF generation using xhtml
 - **Parallel fetching** - Uses ThreadPoolExecutor to fetch multiple photos concurrently
 - **Branding** - Includes company logo, operator signature, and formatted report data
 
+### Service Authorization
+
+The `apps/authorization/` app implements group-based service access control:
+
+- **`Service` model** - Maps a URL namespace (`app_label`) to one or more Django `Group`s. Superusers bypass all checks.
+- **`ServiceAccessMiddleware`** - Resolves each incoming request to its URL namespace and checks that the authenticated user belongs to an allowed group. Returns `403 Forbidden` on failure. Configurable exempt apps and URL prefixes via settings (`SERVICE_AUTH_EXEMPT_APPS`, `SERVICE_AUTH_EXEMPT_URLS`).
+- **`@require_service` decorator** - View-level alternative for cross-app service checks.
+- **Context processor** - Injects the list of services accessible to the current user into every template context (`accessible_services`).
+- **`seed_services` command** - Idempotent management command that creates or updates `Service` records and their groups from a central definition list.
+
+Default services and groups seeded by `seed_services`:
+
+| Service | App Label | Groups |
+|---|---|---|
+| Dashboard | `core` | `dashboard_users`, `managers` |
+| Reports | `reports` | `reports_users`, `managers` |
+| Reports API | `reports_api` | `reports_users`, `managers` |
+| Profiles | `profiles` | `dashboard_users`, `reports_users`, `managers` |
+
+The default policy when no `Service` record exists for an app is configurable via `SERVICE_AUTH_DEFAULT_POLICY` (`"allow"` or `"deny"`, default `"deny"`).
+
 ### Field Mappings
 
 `apps/reports/mappings.py` contains coded value domain mappings ported from the original PHP application. The `get_field_value()` function translates ArcGIS coded values into human-readable labels.
@@ -220,4 +257,7 @@ uv run python manage.py createsuperuser
 
 # Collect static files (for production)
 uv run python manage.py collectstatic
+
+# Seed/update service definitions and groups
+uv run python manage.py seed_services
 ```

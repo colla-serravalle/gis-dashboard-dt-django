@@ -59,6 +59,10 @@ class AzureOIDCBackend(OIDCAuthenticationBackend):
         user.email = claims.get('email', user.email)
         user.save(update_fields=['first_name', 'last_name', 'email'])
 
+        if not GROUP_MAPPING:
+            logger.debug('Synced user %s: GROUP_MAPPING is empty, skipping group sync', user.email)
+            return
+
         azure_group_ids = claims.get('groups', [])
         django_groups = []
         for azure_oid, django_group_name in GROUP_MAPPING.items():
@@ -66,7 +70,12 @@ class AzureOIDCBackend(OIDCAuthenticationBackend):
                 group, _ = Group.objects.get_or_create(name=django_group_name)
                 django_groups.append(group)
 
-        user.groups.set(django_groups)
+        # Only update groups that are covered by the mapping; leave others untouched.
+        mapped_group_names = set(GROUP_MAPPING.values())
+        managed_groups = Group.objects.filter(name__in=mapped_group_names)
+        user.groups.remove(*managed_groups)
+        if django_groups:
+            user.groups.add(*django_groups)
         logger.debug(
             'Synced user %s: groups=%s',
             user.email,
