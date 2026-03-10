@@ -866,6 +866,8 @@ a.link-testo:hover::before{
     padding: 5px;
     width: fit-content;
     font-weight: bold;
+    margin: 5px 0;
+    min-height: 40px;
 }
 /* FINE stile logo tratta */
 
