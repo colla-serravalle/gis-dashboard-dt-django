@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     'apps.authorization',
     'apps.core',
     'apps.reports',
+    'apps.segnalazioni',
 ]
 
 MIDDLEWARE = [

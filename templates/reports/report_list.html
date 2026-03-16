@@ -10,43 +10,44 @@
 {% endblock %}
 
 {% block content %}
-<div class="text-chunk">
-    <h1>Report di sopralluogo</h1>
+<div class="content-header">
+    <h1><i class="fa-solid fa-file-lines"></i> Report di sopralluogo</h1>
     <p>Archivio dei sopralluoghi effettuati.</p>
 </div>
 
 <!-- Container per i filtri -->
 <div id="filters-container"></div>
 
-<table>
-    <thead>
-    <tr>
-        <th>ID</th>
-        <th>{{ labels.nome_operatore }}</th>
-        <th>{{ labels.tratta }}</th>
-        <th>{{ labels.tipologia_appalto }}</th>
-        <th>{{ labels.data_rilevamento }}</th>
-        <th>Azioni</th>
-    </tr>
-    </thead>
-    <tbody id="tableBody">
-    <tr>
-        <td colspan="6" style="text-align: center; padding: 20px;">
-        Caricamento dati...
-        </td>
-    </tr>
-    </tbody>
-</table>
+<div class="table-container">
+    <table>
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>{{ labels.nome_operatore }}</th>
+            <th>{{ labels.tratta }}</th>
+            <th>{{ labels.tipologia_appalto }}</th>
+            <th>{{ labels.data_rilevamento }}</th>
+            <th>Azioni</th>
+        </tr>
+        </thead>
+        <tbody id="tableBody">
+        <tr>
+            <td colspan="6" style="text-align: center; padding: 20px;">
+            Caricamento...
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
 
-<!-- Paginazione -->
-<div class="pagination" id="pagination">
+<div class="pagination-controls">
     <button id="prevPage" class="page-btn"><i class="fa-solid fa-circle-left fa-1x"></i></button>
     <span id="pageInfo">Pagina 1</span>
     <button id="nextPage" class="page-btn"><i class="fa-solid fa-circle-right fa-1x"></i></button>
 </div>
 
 <script>
-    const itemsPerPage = {{ items_per_page }};
+    const itemsPerPage = {{ items_per_page|default:"20"|safe }};
 
     let currentPage = 1;
     let totalItems = 0;

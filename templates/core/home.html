@@ -28,5 +28,13 @@
         <p>Report di sopralluogo per interventi di manutenzione.</p>
         <a href="{% url 'reports:report_list' %}" class="standard-link filled-link">Vai alla pagina</a>
     </div>
+    <div class="grid-column">
+        <div class="icon-background">
+            <i class="fa-solid fa-triangle-exclamation fa-3x"></i>
+        </div>
+        <h2>Segnalazioni</h2>
+        <p>Archivio delle segnalazioni ricevute.</p>
+        <a href="{% url 'segnalazioni:segnalazioni_list' %}" class="standard-link filled-link">Vai alla pagina</a>
+    </div>
 </div>
 {% endblock %}
