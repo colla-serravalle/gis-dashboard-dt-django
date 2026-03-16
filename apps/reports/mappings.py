@@ -103,6 +103,7 @@ FIELD_VALUES = {
         'm_caserini': 'Michele Caserini',
         'd_sorbara': 'Domenico Sorbara',
         'r_pedulla': 'Rocco Pedullà',
+        'a_micocci:': 'Antonio Micocci',
     },
     'nome_cse': {
         'c_bonnet': 'Carlo Bonnet',

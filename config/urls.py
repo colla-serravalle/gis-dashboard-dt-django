@@ -17,6 +17,8 @@ urlpatterns = [
     path('api/', include('apps.reports.api_urls')),
     path('', include('apps.core.urls')),
     path('', include('apps.reports.urls')),
+    path('', include('apps.segnalazioni.urls')),
+    path('segnalazioni/api/', include('apps.segnalazioni.api_urls')),
     path('', include('apps.profiles.urls')),
 ]
 

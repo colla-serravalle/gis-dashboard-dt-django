@@ -26,6 +26,18 @@ SERVICE_DEFINITIONS = [
         "groups": ["reports_users", "managers"],
     },
     {
+        "name": "Segnalazioni",
+        "app_label": "segnalazioni",
+        "description": "Citizen/staff reports list",
+        "groups": ["segnalazioni_users", "managers"],
+    },
+    {
+        "name": "Segnalazioni API",
+        "app_label": "segnalazioni_api",
+        "description": "Segnalazioni JSON API endpoints",
+        "groups": ["segnalazioni_users", "managers"],
+    },
+    {
         "name": "Profiles",
         "app_label": "profiles",
         "description": "User profile pages",

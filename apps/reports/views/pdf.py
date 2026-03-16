@@ -103,14 +103,15 @@ def export_pdf(request):
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="Verbale_{report_id}.pdf"'
 
-    result = pisa.CreatePDF(
+    pdf_status = pisa.CreatePDF(
         io.BytesIO(html_string.encode('utf-8')),
         dest=response,
         encoding='utf-8',
     )
 
-    if result.err:
-        logger.error(f"PDF generation error for report {report_id}: {result.err}")
+    # If PDF generation failed, pisa.CreatePDF returns a non-zero error code
+    if isinstance(pdf_status, int) and pdf_status != 0:
+        logger.error(f"PDF generation error for report {report_id}: pisa.CreatePDF returned error code {pdf_status}")
         return HttpResponse("Errore nella generazione del PDF.", status=500)
 
     return response

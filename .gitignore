@@ -27,6 +27,7 @@ gis-dashboard-dt/
 # Claude
 .claude/
 logs/
+CLAUDE.md
 
 # Chroma mem folder
 Userscolla.claude-memchroma/
