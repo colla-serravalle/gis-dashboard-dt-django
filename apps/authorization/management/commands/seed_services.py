@@ -18,6 +18,9 @@ SERVICE_DEFINITIONS = [
         "app_label": "reports",
         "description": "Field inspection reports and PDF export",
         "groups": ["reports_users", "managers"],
+        "icon_class": "fa-solid fa-file-invoice",
+        "list_url_name": "reports:report_list",
+        "display_order": 1,
     },
     {
         "name": "Reports API",
@@ -28,8 +31,11 @@ SERVICE_DEFINITIONS = [
     {
         "name": "Segnalazioni",
         "app_label": "segnalazioni",
-        "description": "Citizen/staff reports list",
+        "description": "Archivio delle segnalazioni ricevute.",
         "groups": ["segnalazioni_users", "managers"],
+        "icon_class": "fa-solid fa-triangle-exclamation",
+        "list_url_name": "segnalazioni:segnalazioni_list",
+        "display_order": 2,
     },
     {
         "name": "Segnalazioni API",
@@ -57,6 +63,9 @@ class Command(BaseCommand):
                     "name": svc_def["name"],
                     "description": svc_def.get("description", ""),
                     "is_active": True,
+                    "icon_class": svc_def.get("icon_class", ""),
+                    "list_url_name": svc_def.get("list_url_name", ""),
+                    "display_order": svc_def.get("display_order", 0),
                 },
             )
             groups = []

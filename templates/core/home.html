@@ -13,6 +13,7 @@
     </div>
 </div>
 
+{% if displayable_services %}
 <div class="text-chunk">
     <h1>Servizi</h1>
     <p>Elenco dei principali servizi disponibili.</p>
@@ -20,21 +21,16 @@
 
 <!-- LAYOUT RESPONSIVE A 3 COLONNE -->
 <div class="grid-container columns-3">
+    {% for service in displayable_services %}
     <div class="grid-column">
         <div class="icon-background">
-            <i class="fa-solid fa-file-invoice fa-3x"></i>
+            <i class="{{ service.icon_class }} fa-3x"></i>
         </div>
-        <h2>Report di sopralluogo</h2>
-        <p>Report di sopralluogo per interventi di manutenzione.</p>
-        <a href="{% url 'reports:report_list' %}" class="standard-link filled-link">Vai alla pagina</a>
+        <h2>{{ service.name }}</h2>
+        <p>{{ service.description }}</p>
+        <a href="{{ service.get_list_url }}" class="standard-link filled-link">Vai alla pagina</a>
     </div>
-    <div class="grid-column">
-        <div class="icon-background">
-            <i class="fa-solid fa-triangle-exclamation fa-3x"></i>
-        </div>
-        <h2>Segnalazioni</h2>
-        <p>Archivio delle segnalazioni ricevute.</p>
-        <a href="{% url 'segnalazioni:segnalazioni_list' %}" class="standard-link filled-link">Vai alla pagina</a>
-    </div>
+    {% endfor %}
 </div>
+{% endif %}
 {% endblock %}
