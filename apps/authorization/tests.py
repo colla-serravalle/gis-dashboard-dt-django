@@ -1,7 +1,7 @@
 import unittest
 
 from django.contrib.auth.models import User, Group
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 
 from apps.authorization.models import Service
@@ -35,6 +35,16 @@ class ServiceOrderingTest(TestCase):
         self.assertEqual(names, ["A Service", "M Service", "Z Service"])
 
 
+@override_settings(MIDDLEWARE=[
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'apps.authorization.middleware.ServiceAccessMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+])
 class HomePageServiceVisibilityTest(TestCase):
     """Integration tests: home page only shows accessible services."""
 
@@ -75,22 +85,22 @@ class HomePageServiceVisibilityTest(TestCase):
 
         self.client.force_login(self.user)
 
-    @unittest.skip("Home page template not yet updated — will pass after Task 4")
     def test_user_sees_only_accessible_service_card(self):
         response = self.client.get(reverse("core:home"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Reports")
-        self.assertNotContains(response, "Segnalazioni")
+        # Reports card present (icon class is unique to card, not sidebar)
+        self.assertContains(response, "fa-file-invoice")
+        # Segnalazioni card absent (icon class not rendered when no access)
+        self.assertNotContains(response, "fa-triangle-exclamation")
 
-    @unittest.skip("Home page template not yet updated — will pass after Task 4")
     def test_superuser_sees_all_services(self):
         superuser = User.objects.create_superuser("admin_test", password="pass")
         self.client.force_login(superuser)
         response = self.client.get(reverse("core:home"))
-        self.assertContains(response, "Reports")
-        self.assertContains(response, "Segnalazioni")
+        # Both service cards rendered for superuser
+        self.assertContains(response, "fa-file-invoice")
+        self.assertContains(response, "fa-triangle-exclamation")
 
-    @unittest.skip("Home page template not yet updated — will pass after Task 4")
     def test_user_with_no_services_sees_no_services_section(self):
         # Create a user with only dashboard access (no service cards)
         bare_user = User.objects.create_user("bare_user", password="pass")
