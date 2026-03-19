@@ -20,6 +20,6 @@ def accessible_services(request):
             allowed_groups__in=request.user.groups.all()
         ).distinct()
 
-    displayable = services.exclude(list_url_name="")
+    displayable = services.exclude(list_url_name="").exclude(list_url_name__isnull=True)
 
     return {"accessible_services": services, "displayable_services": displayable}

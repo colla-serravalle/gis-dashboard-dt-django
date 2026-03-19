@@ -1,7 +1,5 @@
-import unittest
-
 from django.contrib.auth.models import User, Group
-from django.test import TestCase, Client, override_settings
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from apps.authorization.models import Service
