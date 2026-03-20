@@ -72,9 +72,10 @@ FIELD_LABELS = {
 
 # =============================================================================
 # Field Values - Map coded values to human-readable labels
+# FIELD_VALUES viene mantenuto hardcoded come fallback nel caso in cui non si riesca a recuperare la mappatura dai csv su ArcGIS Portal.
 # =============================================================================
 
-FIELD_VALUES = {"""
+FIELD_VALUES = {
     'nome_operatore': {
         'g_vitale': 'Giovanni Vitale',
         'g_ferrari': 'Giuseppe Ferrari',
@@ -329,7 +330,7 @@ FIELD_VALUES = {"""
         'm11': 'M11',
         'm12': 'M12',
         'm14': 'M14',
-    },"""
+    },
 }
 
 # =============================================================================
