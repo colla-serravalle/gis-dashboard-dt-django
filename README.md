@@ -235,7 +235,62 @@ The default policy when no `Service` record exists for an app is configurable vi
 
 ### Field Mappings
 
-`apps/reports/mappings.py` contains coded value domain mappings ported from the original PHP application. The `get_field_value()` function translates ArcGIS coded values into human-readable labels.
+I campi a scelta multipla del feature layer ArcGIS contengono codici brevi (es. `pavimentazioni`). Il sistema li traduce in etichette leggibili (es. `Pavimentazioni`) leggendo i CSV delle liste scelte pubblicati su ArcGIS Portal — senza hardcoding nel codice.
+
+#### Configurazione (`config/settings.py`)
+
+```python
+ARCGIS_FIELD_MAPPINGS = {
+    'reports': {
+        'field_name': 'arcgis_item_id',  # es. 'tipologia_appalto': '3fb39efc...'
+    },
+    # 'segnalazioni': { ... }  # aggiungere per nuovi servizi
+}
+ARCGIS_MAPPING_CACHE_TIMEOUT = 300  # secondi (default: 5 minuti)
+```
+
+Ogni chiave di primo livello è il nome dell'app Django. Ogni coppia `field_name: item_id` mappa un campo del feature layer all'item_id del CSV corrispondente su Portal.
+
+> **Nota:** il `field_name` dell'app e il `list_name` nel CSV sono denominazioni indipendenti e non devono coincidere. La corrispondenza è stabilita esplicitamente in `ARCGIS_FIELD_MAPPINGS`.
+
+#### Come funziona
+
+1. Al primo accesso dell'utente, `apps/core/services/csv_mapping.py` scarica i CSV configurati dal Portal tramite l'API REST (`/sharing/rest/content/items/{id}/data`), usando il token ArcGIS già in cache.
+2. Costruisce un dizionario interno `{ field_name: { code: label } }` e lo salva in cache (LocMemCache).
+3. Le richieste successive leggono dalla cache — nessuna chiamata al Portal.
+4. Alla scadenza del TTL, il primo accesso successivo scarica di nuovo i CSV e aggiorna la cache.
+
+La colonna `list_name` dei CSV è ignorata a runtime; contano solo le colonne `name` (codice) e `label` (etichetta).
+
+#### Aggiornare i mapping senza deploy
+
+Per aggiungere un nuovo valore (es. un nuovo operatore): aggiornare il CSV su ArcGIS Portal. La webapp lo vedrà automaticamente entro `ARCGIS_MAPPING_CACHE_TIMEOUT` secondi.
+
+Per forzare il refresh immediato senza attendere il TTL:
+```python
+# Django shell: uv run python manage.py shell
+from django.core.cache import cache
+cache.delete('arcgis_csv_mappings_reports')
+```
+
+Per aggiungere un nuovo campo al mapping: aggiungere la coppia `'field_name': 'item_id'` in `ARCGIS_FIELD_MAPPINGS['reports']` — nessuna modifica al codice applicativo.
+
+#### Variabile d'ambiente
+
+| Variabile | Default | Descrizione |
+|---|---|---|
+| `ARCGIS_MAPPING_CACHE_TIMEOUT` | `300` | Secondi di validità della cache dei mapping CSV |
+
+#### Comportamento in caso di errore
+
+| Scenario | Comportamento |
+|---|---|
+| Portal non raggiungibile / errore HTTP | Eccezione propagata → pagina di errore 500 |
+| Token ArcGIS non valido o scaduto | Eccezione propagata → pagina di errore 500 |
+| `item_id` non ancora configurato (placeholder) | Log di warning → fallback ai valori hardcoded in `FIELD_VALUES` |
+| `field_name` non presente in `ARCGIS_FIELD_MAPPINGS` | Fallback ai valori hardcoded in `FIELD_VALUES` |
+| Codice non trovato nel CSV (valore sconosciuto) | Viene mostrato il codice grezzo (es. `nuovo_valore`) |
+| `ARCGIS_FIELD_MAPPINGS` vuoto o assente | Usa interamente i valori hardcoded in `FIELD_VALUES` |
 
 ## Useful Commands
 
