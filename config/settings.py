@@ -237,6 +237,49 @@ ARCGIS_PASSWORD = os.getenv('ARCGIS_PASSWORD', '')
 ARCGIS_REFERER = os.getenv('ARCGIS_REFERER', 'https://dtserravalle.altervista.org/')
 ARCGIS_TOKEN_EXPIRATION_MINUTES = int(os.getenv('ARCGIS_TOKEN_EXPIRATION_MINUTES', 60))
 
+# Base portal URL (without /sharing/rest/...) used to build content item download URLs.
+ARCGIS_PORTAL_BASE_URL = os.getenv(
+    'ARCGIS_PORTAL_BASE_URL',
+    'https://gisserver.serravalle.it/portal'
+)
+
+# Mapping field_name → ArcGIS Portal CSV item_id, organizzato per app/servizio.
+# Struttura: { 'nome_app': { 'field_name': 'csv_item_id' } }
+# Ogni CSV (pubblicato su Portal) deve avere le colonne: list_name, name, label.
+# La colonna list_name è ignorata: la corrispondenza field↔CSV è stabilita qui.
+# Sostituire i placeholder con i reali item_id di ArcGIS Portal.
+ARCGIS_FIELD_MAPPINGS = {
+    'reports': {
+        'tipologia_appalto':    '3fb39efce22042219101dde54ad19296',    # list_name atteso: tipo_appalto
+        'nome_operatore':       'c56ddcfea4854f57a736f6cbef371d55',        # list_name atteso: operatore_mosc (o equivalente)
+        'nome_dl':              'b36a839ac3a64e3583dc456b839fe5dd',               # list_name atteso: nome_dl
+        'nome_cse':             '20d2b7b1ce764872b120d32dbd1d70a9',              # list_name atteso: nome_cse
+        'tratta':               'cf3b020c6dec44d4a6a308e641ccb676',                # list_name atteso: tratta
+        'nome_impresa':         '71908fca5de947fa9a84078a4bf2de67',          # list_name atteso: nome_impresa
+        # 'cantierizzazione':     'PLACEHOLDER_CANTIERIZZAZIONE',      # list_name atteso: cantierizzazione
+        # 'presenza_dl':          'PLACEHOLDER_PRESENZA_DL',           # list_name atteso: presenza_dl
+        # 'presenza_cse':         'PLACEHOLDER_PRESENZA_CSE',          # list_name atteso: presenza_cse
+        # 'rapp_contrattuale':    'PLACEHOLDER_RAPP_CONTRATTUALE',     # list_name atteso: rapp_contrattuale
+        'tipo_intervento_pav':  'fba4289897c6450ea626b106de53e260',  # list_name atteso: tipo_intervento_pav
+        # 'carreggiata':          'PLACEHOLDER_CARREGGIATA',           # list_name atteso: carreggiata
+        'corsie_svincolo':      '0ad56059474d4897aeb80e09cdefde8a',       # list_name atteso: corsie_svincolo
+        'area_intervento':      '60605959de6e48e1985a8771b3c85d4f',       # list_name atteso: area_intervento
+        'nome_svincolo':        'ea5dbdc181fa4eb198c07fe8e9f0de60',         # list_name atteso: nome_svincolo
+        'nome_casello':         '7c08b6f383af4c3789d5e1d2a83b22c7',          # list_name atteso: nome_casello
+        'nome_area_servizio':   '313212d342db400480f2d77ffbc3a2a3',    # list_name atteso: nome_area_servizio
+        'n_squadra_pronto_int': 'b065704846cb4c43955f4b0856dfaaa1', # list_name atteso: n_squadra_pronto_int
+        'corsia':               '2b989f3ab6da4b209d8483caebf3b685', 
+    },
+    # Aggiungere altri servizi qui, es:
+    # 'segnalazioni': {
+    #     'nome_operatore': 'PLACEHOLDER_NOME_OPERATORE_DIRE',
+    # },
+}
+
+# Secondi prima che la cache dei mapping CSV scada e venga ricaricata dal Portal.
+# Default: 300 s (5 min) — modificabile senza deploy tramite env var.
+ARCGIS_MAPPING_CACHE_TIMEOUT = int(os.getenv('ARCGIS_MAPPING_CACHE_TIMEOUT', 300))
+
 
 # =============================================================================
 # Pagination Configuration

@@ -74,7 +74,7 @@ FIELD_LABELS = {
 # Field Values - Map coded values to human-readable labels
 # =============================================================================
 
-FIELD_VALUES = {
+FIELD_VALUES = {"""
     'nome_operatore': {
         'g_vitale': 'Giovanni Vitale',
         'g_ferrari': 'Giuseppe Ferrari',
@@ -329,7 +329,7 @@ FIELD_VALUES = {
         'm11': 'M11',
         'm12': 'M12',
         'm14': 'M14',
-    },
+    },"""
 }
 
 # =============================================================================
@@ -497,12 +497,20 @@ def get_field_value(field_name: str, value: Any) -> str:
             except (ValueError, TypeError):
                 pass
 
-    # Check for field value mapping
+    # CSV-based mapping (primary source, lazy-loaded with TTL refresh).
+    # Raises explicitly on fetch failure — callers receive a Django 500.
+    from apps.core.services.csv_mapping import get_csv_mappings
+    csv_mappings = get_csv_mappings(app='reports')
+    if field_name in csv_mappings:
+        # str(value) for uniform comparison: CSV keys are always strings.
+        return csv_mappings[field_name].get(str(value), str(value))
+
+    # Hardcoded fallback for fields not yet present in any configured CSV.
     if field_name in FIELD_VALUES:
         if value in FIELD_VALUES[field_name]:
             return FIELD_VALUES[field_name][value]
 
-    # Return original value
+    # Return original value as string (preserves existing contract).
     return str(value) if value is not None else ''
 
 
@@ -570,7 +578,15 @@ def process_features(features: list, section: str = 'main') -> list:
 
 
 def get_field_options(field_name: str) -> dict:
-    """Get all possible values for a field (useful for dropdowns)."""
+    """Get all possible values for a field (useful for dropdowns).
+
+    CSV-based mappings take priority over hardcoded FIELD_VALUES.
+    Raises explicitly if the CSV fetch fails.
+    """
+    from apps.core.services.csv_mapping import get_csv_mappings
+    csv_mappings = get_csv_mappings(app='reports')
+    if field_name in csv_mappings:
+        return csv_mappings[field_name]
     return FIELD_VALUES.get(field_name, {})
 
 
