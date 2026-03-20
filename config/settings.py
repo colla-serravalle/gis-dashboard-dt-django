@@ -251,10 +251,10 @@ ARCGIS_PORTAL_BASE_URL = os.getenv(
 ARCGIS_FIELD_MAPPINGS = {
     'reports': {
         'tipologia_appalto':    '3fb39efce22042219101dde54ad19296',    # expected list_name: tipo_appalto
-        'nome_operatore':       'c56ddcfea4854f57a736f6cbef371d55',        # expected list_name: operatore_mosc (or equivalent)
+        'nome_operatore':       'c34cf657e62f4938b2156e8d0b4f604a',        # expected list_name: operatore_mosc (or equivalent)
         'nome_dl':              'b36a839ac3a64e3583dc456b839fe5dd',               # expected list_name: nome_dl
         'nome_cse':             '20d2b7b1ce764872b120d32dbd1d70a9',              # expected list_name: nome_cse
-        'tratta':               'cf3b020c6dec44d4a6a308e641ccb676',                # expected list_name: tratta
+        'tratta':               '9bf9549a40164608a4487f1c531d8922',                # expected list_name: tratta
         'nome_impresa':         '71908fca5de947fa9a84078a4bf2de67',          # expected list_name: nome_impresa
         # 'cantierizzazione':     'PLACEHOLDER_CANTIERIZZAZIONE',      # expected list_name: cantierizzazione
         # 'presenza_dl':          'PLACEHOLDER_PRESENZA_DL',           # expected list_name: presenza_dl
