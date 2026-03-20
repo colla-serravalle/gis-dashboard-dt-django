@@ -81,3 +81,103 @@ class NIS2JsonFormatterTest(SimpleTestCase):
         output = self.formatter.format(bare_record)
         parsed = json.loads(output)
         self.assertIn("timestamp", parsed)
+
+
+from unittest.mock import MagicMock
+
+from django.test import RequestFactory
+
+from apps.audit.utils import emit_audit_event, WARNING_EVENT_TYPES
+
+
+def _make_request(username=None, session_key="sess-abc", path="/test/",
+                  method="GET", remote_addr="10.0.0.1", forwarded_for=None):
+    """Helper: build a minimal fake HttpRequest."""
+    factory = RequestFactory()
+    request = factory.generic(method, path)
+    request.META["REMOTE_ADDR"] = remote_addr
+    if forwarded_for:
+        request.META["HTTP_X_FORWARDED_FOR"] = forwarded_for
+
+    mock_user = MagicMock()
+    if username:
+        mock_user.is_authenticated = True
+        mock_user.username = username
+    else:
+        mock_user.is_authenticated = False
+
+    request.user = mock_user
+    request.session = MagicMock()
+    request.session.session_key = session_key
+    return request
+
+
+class EmitAuditEventTest(SimpleTestCase):
+
+    def test_emits_info_for_normal_event(self):
+        request = _make_request(username="mario")
+        with self.assertLogs("audit", level="INFO") as cm:
+            emit_audit_event(request, "auth.login.success", detail={"auth_method": "local"})
+        self.assertEqual(len(cm.records), 1)
+        self.assertEqual(cm.records[0].levelno, logging.INFO)
+
+    def test_emits_warning_for_warning_event_types(self):
+        request = _make_request(username="mario")
+        for event_type in WARNING_EVENT_TYPES:
+            with self.assertLogs("audit", level="WARNING") as cm:
+                emit_audit_event(request, event_type, detail={})
+            self.assertEqual(cm.records[0].levelno, logging.WARNING)
+
+    def test_extracts_username_from_authenticated_user(self):
+        request = _make_request(username="mario.rossi")
+        with self.assertLogs("audit", level="INFO") as cm:
+            emit_audit_event(request, "auth.login.success", detail={})
+        self.assertEqual(cm.records[0].user, "mario.rossi")
+
+    def test_anonymous_user_yields_anonymous_string(self):
+        request = _make_request()  # no username → not authenticated
+        with self.assertLogs("audit", level="INFO") as cm:
+            emit_audit_event(request, "auth.logout", detail={})
+        self.assertEqual(cm.records[0].user, "anonymous")
+
+    def test_extracts_session_key(self):
+        request = _make_request(username="u", session_key="my-session")
+        with self.assertLogs("audit", level="INFO") as cm:
+            emit_audit_event(request, "auth.logout", detail={})
+        self.assertEqual(cm.records[0].session_id, "my-session")
+
+    def test_null_session_key_when_no_session(self):
+        request = _make_request(username="u", session_key=None)
+        with self.assertLogs("audit", level="INFO") as cm:
+            emit_audit_event(request, "auth.logout", detail={})
+        self.assertIsNone(cm.records[0].session_id)
+
+    def test_ip_from_remote_addr(self):
+        request = _make_request(username="u", remote_addr="192.168.1.5")
+        with self.assertLogs("audit", level="INFO") as cm:
+            emit_audit_event(request, "auth.logout", detail={})
+        self.assertEqual(cm.records[0].ip, "192.168.1.5")
+
+    def test_ip_from_x_forwarded_for_first_value(self):
+        request = _make_request(username="u", forwarded_for="203.0.113.1, 10.0.0.1")
+        with self.assertLogs("audit", level="INFO") as cm:
+            emit_audit_event(request, "auth.logout", detail={})
+        self.assertEqual(cm.records[0].ip, "203.0.113.1")
+
+    def test_path_is_request_path(self):
+        request = _make_request(username="u", path="/reports/list/")
+        with self.assertLogs("audit", level="INFO") as cm:
+            emit_audit_event(request, "data.report.viewed", detail={})
+        self.assertEqual(cm.records[0].path, "/reports/list/")
+
+    def test_detail_defaults_to_empty_dict(self):
+        request = _make_request(username="u")
+        with self.assertLogs("audit", level="INFO") as cm:
+            emit_audit_event(request, "auth.logout")
+        self.assertEqual(cm.records[0].detail, {})
+
+    def test_event_type_constant_namespace(self):
+        """All WARNING event types follow dotted namespace convention."""
+        for et in WARNING_EVENT_TYPES:
+            parts = et.split(".")
+            self.assertGreaterEqual(len(parts), 2, msg=f"Bad event type: {et}")
