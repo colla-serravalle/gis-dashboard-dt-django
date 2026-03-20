@@ -8,6 +8,7 @@ from django.conf import settings
 from django.views import View
 
 from .forms import LoginForm
+from apps.audit.utils import emit_audit_event
 
 logger = logging.getLogger(__name__)
 
@@ -62,9 +63,11 @@ class LoginView(View):
         if login_attempts >= max_attempts:
             time_passed = current_time - last_attempt
             if time_passed < lockout_duration:
-                logger.warning(
-                    f"Login attempt while locked from IP: {self._get_client_ip(request)}"
-                )
+                emit_audit_event(request, "auth.login.locked", detail={
+                    "username_attempted": request.POST.get("username", ""),
+                    "attempt_count": login_attempts,
+                    "locked_until": last_attempt + lockout_duration,
+                })
                 return redirect('/auth/login/?error=locked')
             else:
                 # Reset counter after lockout period
@@ -81,9 +84,7 @@ class LoginView(View):
                 request.session['login_attempts'] = 0
                 login(request, user)
 
-                logger.info(
-                    f"Successful login for user: {username} from IP: {self._get_client_ip(request)}"
-                )
+                emit_audit_event(request, "auth.login.success", detail={"auth_method": "local"})
 
                 # Redirect to next URL or home
                 next_url = request.GET.get('next', '/')
@@ -93,10 +94,10 @@ class LoginView(View):
                 request.session['login_attempts'] = login_attempts + 1
                 request.session['last_attempt'] = current_time
 
-                logger.warning(
-                    f"Failed login attempt for user: {username} from IP: {self._get_client_ip(request)} "
-                    f"(attempt {login_attempts + 1}/{max_attempts})"
-                )
+                emit_audit_event(request, "auth.login.failure", detail={
+                    "username_attempted": username,
+                    "attempt_count": login_attempts + 1,
+                })
 
                 return render(request, self.template_name, {
                     'form': form,
@@ -119,6 +120,6 @@ class LoginView(View):
 def logout_view(request):
     """Logout user and redirect to login page."""
     if request.user.is_authenticated:
-        logger.info(f"User {request.user.username} logged out")
+        emit_audit_event(request, "auth.logout", detail={})
     logout(request)
     return redirect(settings.LOGIN_URL)

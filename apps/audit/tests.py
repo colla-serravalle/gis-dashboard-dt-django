@@ -181,3 +181,101 @@ class EmitAuditEventTest(SimpleTestCase):
         for et in WARNING_EVENT_TYPES:
             parts = et.split(".")
             self.assertGreaterEqual(len(parts), 2, msg=f"Bad event type: {et}")
+
+
+from django.contrib.auth.models import User
+from django.test import TestCase, override_settings
+from django.urls import reverse
+
+# Minimal middleware stack for integration tests — strips OIDC SessionRefresh
+# and ServiceAccessMiddleware to keep tests focused on auth events only.
+_TEST_MIDDLEWARE = [
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+]
+
+
+@override_settings(
+    MIDDLEWARE=_TEST_MIDDLEWARE,
+    AUTHENTICATION_BACKENDS=["django.contrib.auth.backends.ModelBackend"],
+)
+class AuthEventTest(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user("testuser", password="correct-password")
+
+    def test_login_success_emits_auth_login_success(self):
+        with self.assertLogs("audit", level="INFO") as cm:
+            self.client.post(reverse("accounts:login"), {
+                "username": "testuser",
+                "password": "correct-password",
+            })
+        event_types = [r.event_type for r in cm.records]
+        self.assertIn("auth.login.success", event_types)
+
+    def test_login_success_detail_contains_auth_method(self):
+        with self.assertLogs("audit", level="INFO") as cm:
+            self.client.post(reverse("accounts:login"), {
+                "username": "testuser",
+                "password": "correct-password",
+            })
+        record = next(r for r in cm.records if r.event_type == "auth.login.success")
+        self.assertIn("auth_method", record.detail)
+
+    def test_login_failure_emits_auth_login_failure(self):
+        with self.assertLogs("audit", level="WARNING") as cm:
+            self.client.post(reverse("accounts:login"), {
+                "username": "testuser",
+                "password": "wrong-password",
+            })
+        event_types = [r.event_type for r in cm.records]
+        self.assertIn("auth.login.failure", event_types)
+
+    def test_login_failure_detail_contains_attempt_count(self):
+        with self.assertLogs("audit", level="WARNING") as cm:
+            self.client.post(reverse("accounts:login"), {
+                "username": "testuser",
+                "password": "wrong-password",
+            })
+        record = next(r for r in cm.records if r.event_type == "auth.login.failure")
+        self.assertIn("attempt_count", record.detail)
+
+    def test_logout_emits_auth_logout(self):
+        self.client.force_login(self.user)
+        with self.assertLogs("audit", level="INFO") as cm:
+            self.client.get(reverse("accounts:logout"))
+        event_types = [r.event_type for r in cm.records]
+        self.assertIn("auth.logout", event_types)
+
+    def test_lockout_emits_auth_login_locked(self):
+        session = self.client.session
+        session["login_attempts"] = 10
+        session["last_attempt"] = 9999999999  # far future — always locked
+        session.save()
+        with self.assertLogs("audit", level="WARNING") as cm:
+            self.client.post(reverse("accounts:login"), {
+                "username": "testuser",
+                "password": "any",
+            })
+        event_types = [r.event_type for r in cm.records]
+        self.assertIn("auth.login.locked", event_types)
+
+    def test_lockout_detail_contains_attempt_count_and_locked_until(self):
+        import time
+        session = self.client.session
+        session["login_attempts"] = 10
+        session["last_attempt"] = time.time()
+        session.save()
+        with self.assertLogs("audit", level="WARNING") as cm:
+            self.client.post(reverse("accounts:login"), {
+                "username": "testuser",
+                "password": "any",
+            })
+        record = next(r for r in cm.records if r.event_type == "auth.login.locked")
+        self.assertIn("attempt_count", record.detail)
+        self.assertIn("locked_until", record.detail)
