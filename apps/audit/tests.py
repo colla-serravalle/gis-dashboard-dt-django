@@ -571,3 +571,29 @@ class ArcGISQueryEventTest(TestCase):
             self.client.get("/api/data/")
         record = next(r for r in cm.records if r.event_type == "data.arcgis.queried")
         self.assertEqual(record.detail["record_count"], 2)
+
+
+@override_settings(MIDDLEWARE=_TEST_MIDDLEWARE + [
+    "apps.authorization.middleware.ServiceAccessMiddleware",
+])
+class SegnalazioneDataAccessEventTest(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user("segnalazioniuser", password="pass")
+        group = Group.objects.create(name="segn_group")
+        self.user.groups.add(group)
+
+        core_svc = Service.objects.create(name="Core", app_label="core", is_active=True)
+        core_svc.allowed_groups.set([group])
+        segn_svc = Service.objects.create(
+            name="Segnalazioni", app_label="segnalazioni", is_active=True
+        )
+        segn_svc.allowed_groups.set([group])
+
+        self.client.force_login(self.user)
+
+    def test_segnalazioni_list_emits_data_segnalazione_viewed(self):
+        with self.assertLogs("audit", level="INFO") as cm:
+            self.client.get(reverse("segnalazioni:segnalazioni_list"))
+        event_types = [r.event_type for r in cm.records]
+        self.assertIn("data.segnalazione.viewed", event_types)
