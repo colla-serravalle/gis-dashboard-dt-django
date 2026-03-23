@@ -451,36 +451,34 @@ class AdminUserChangedEventTest(TestCase):
         self.target = User.objects.create_user("target_user", password="pass",
                                                first_name="Old")
         self.client.force_login(self.admin)
+        self.change_url = f"/admin/auth/user/{self.target.pk}/change/"
+        self.change_payload = {
+            "username": self.target.username,
+            "first_name": "New",
+            "last_name": self.target.last_name,
+            "email": self.target.email,
+            "is_active": "on",
+            "date_joined_0": "2024-01-01",
+            "date_joined_1": "00:00:00",
+            "_save": "Save",
+        }
 
     def test_admin_user_save_emits_admin_user_changed(self):
-        change_url = f"/admin/auth/user/{self.target.pk}/change/"
         with self.assertLogs("audit", level="INFO") as cm:
-            self.client.post(change_url, {
-                "username": self.target.username,
-                "first_name": "New",
-                "last_name": self.target.last_name,
-                "email": self.target.email,
-                "is_active": "on",
-                "date_joined_0": "2024-01-01",
-                "date_joined_1": "00:00:00",
-                "_save": "Save",
-            })
+            self.client.post(self.change_url, self.change_payload)
         event_types = [r.event_type for r in cm.records]
         self.assertIn("admin.user.changed", event_types)
 
     def test_admin_user_changed_detail_contains_changed_by(self):
-        change_url = f"/admin/auth/user/{self.target.pk}/change/"
         with self.assertLogs("audit", level="INFO") as cm:
-            self.client.post(change_url, {
-                "username": self.target.username,
-                "first_name": "New",
-                "last_name": self.target.last_name,
-                "email": self.target.email,
-                "is_active": "on",
-                "date_joined_0": "2024-01-01",
-                "date_joined_1": "00:00:00",
-                "_save": "Save",
-            })
+            self.client.post(self.change_url, self.change_payload)
         record = next(r for r in cm.records if r.event_type == "admin.user.changed")
         self.assertEqual(record.detail["changed_by"], "admin")
         self.assertEqual(record.detail["user_changed"], "target_user")
+
+    def test_admin_user_changed_detail_contains_fields(self):
+        with self.assertLogs("audit", level="INFO") as cm:
+            self.client.post(self.change_url, self.change_payload)
+        record = next(r for r in cm.records if r.event_type == "admin.user.changed")
+        self.assertIn("fields", record.detail)
+        self.assertIn("first_name", record.detail["fields"])
