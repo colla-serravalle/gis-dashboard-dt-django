@@ -14,6 +14,8 @@ from mozilla_django_oidc.auth import OIDCAuthenticationBackend
 from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth.models import Group
 
+from apps.audit.utils import emit_audit_event
+
 logger = logging.getLogger(__name__)
 
 # Map Azure group Object IDs to Django group names.
@@ -44,7 +46,7 @@ class AzureOIDCBackend(OIDCAuthenticationBackend):
         username = self.get_username(claims)
         user = self.UserModel.objects.create_user(username=username, email=email)
         self.sync_user(user, claims)
-        logger.info('Created new user from Azure AD claims: %s', email)
+        emit_audit_event(self.request, "auth.user.created", detail={"email": email})
         return user
 
     def update_user(self, user, claims):

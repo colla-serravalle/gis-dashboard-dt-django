@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'apps.core',
     'apps.reports',
     'apps.segnalazioni',
+    'apps.audit',
 ]
 
 MIDDLEWARE = [
@@ -352,6 +353,9 @@ LOGGING = {
             'format': '{levelname} {asctime} {name} {message}',
             'style': '{',
         },
+        'audit_json': {
+            '()': 'apps.audit.formatters.NIS2JsonFormatter',
+        },
     },
     'filters': {
         # Suppress browser-generated 404 warnings (favicon, .well-known, etc.)
@@ -383,6 +387,16 @@ LOGGING = {
             'formatter': 'verbose',
             'filters': ['suppress_browser_404s'],
         },
+        'audit_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'audit.log',
+            'when': 'midnight',
+            'interval': 1,
+            'backupCount': 365,
+            'encoding': 'utf-8',
+            'formatter': 'audit_json',
+        },
     },
     'loggers': {
         # Explicitly configure django.request logger for clarity
@@ -394,6 +408,11 @@ LOGGING = {
         'apps.core.services.arcgis': {
             'handlers': ['arcgis_file', 'console'],
             'level': 'DEBUG',
+            'propagate': False,
+        },
+        'audit': {
+            'handlers': ['audit_file'],
+            'level': 'INFO',
             'propagate': False,
         },
     },

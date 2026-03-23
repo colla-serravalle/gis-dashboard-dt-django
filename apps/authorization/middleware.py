@@ -3,6 +3,7 @@ from django.urls import resolve, Resolver404
 from django.conf import settings
 
 from .models import Service
+from apps.audit.utils import emit_audit_event
 
 
 # Apps (URL namespaces) that are always accessible — no group check needed
@@ -68,12 +69,20 @@ class ServiceAccessMiddleware:
         except Service.DoesNotExist:
             if DEFAULT_POLICY == "allow":
                 return self.get_response(request)
+            emit_audit_event(request, "authz.access.denied", detail={
+                "app_label": app_label,
+                "reason": "service_not_found",
+            })
             return HttpResponseForbidden(
                 "You do not have permission to access this service. "
                 "Contact your administrator to request access."
             )
 
         if not service.user_has_access(request.user):
+            emit_audit_event(request, "authz.access.denied", detail={
+                "app_label": app_label,
+                "reason": "group_not_permitted",
+            })
             return HttpResponseForbidden(
                 "You do not have permission to access this service. "
                 "Contact your administrator to request access."

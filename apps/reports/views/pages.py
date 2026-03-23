@@ -8,6 +8,7 @@ from django.conf import settings
 
 from apps.reports.mappings import get_field_label
 from apps.reports.services.report_data import get_report_data
+from apps.audit.utils import emit_audit_event
 
 
 @method_decorator(login_required, name='dispatch')
@@ -29,6 +30,7 @@ class ReportListView(View):
             }
         }
 
+        emit_audit_event(request, "data.report.viewed", detail={"report_id": None})
         return render(request, self.template_name, context)
 
 
@@ -51,4 +53,5 @@ class ReportDetailView(View):
                 'error': 'Record non trovato'
             })
 
+        emit_audit_event(request, "data.report.viewed", detail={"report_id": report_id})
         return render(request, self.template_name, data)

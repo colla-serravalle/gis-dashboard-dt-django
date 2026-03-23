@@ -17,6 +17,7 @@ from apps.reports.services.image_utils import (
     fetch_attachment_as_base64,
     local_image_to_base64_uri,
 )
+from apps.audit.utils import emit_audit_event
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,8 @@ def export_pdf(request):
     data = get_report_data(report_id)
     if data is None:
         return HttpResponse("Record non trovato.", status=404)
+
+    emit_audit_event(request, "data.report.exported", detail={"report_id": report_id})
 
     raw = data['raw_attributes']
 
