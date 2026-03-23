@@ -482,3 +482,52 @@ class AdminUserChangedEventTest(TestCase):
         record = next(r for r in cm.records if r.event_type == "admin.user.changed")
         self.assertIn("fields", record.detail)
         self.assertIn("first_name", record.detail["fields"])
+
+
+@override_settings(MIDDLEWARE=_TEST_MIDDLEWARE + [
+    "apps.authorization.middleware.ServiceAccessMiddleware",
+])
+class ReportDataAccessEventTest(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user("reportuser", password="pass")
+        group = Group.objects.create(name="reports_group")
+        self.user.groups.add(group)
+
+        # Grant access to core and reports services
+        core_svc = Service.objects.create(name="Core", app_label="core", is_active=True)
+        core_svc.allowed_groups.set([group])
+        reports_svc = Service.objects.create(name="Reports", app_label="reports", is_active=True)
+        reports_svc.allowed_groups.set([group])
+
+        self.client.force_login(self.user)
+
+    def test_report_list_view_emits_data_report_viewed(self):
+        with self.assertLogs("audit", level="INFO") as cm:
+            self.client.get(reverse("reports:report_list"))
+        event_types = [r.event_type for r in cm.records]
+        self.assertIn("data.report.viewed", event_types)
+
+    def test_pdf_export_emits_data_report_exported(self):
+        from unittest.mock import patch, MagicMock
+        fake_data = {
+            "raw_attributes": {"globalid": "{ABC}", "nome_operatore": ""},
+            "object_id": 1,
+            "report_id": "{TEST-ID}",
+            "signature_attachments": [],
+            "photos": [],
+            "main_data": [],
+            "location_data": [],
+            "pk_pav_data": [],
+            "pk_pav_headers": [],
+            "impresa_data": [],
+            "impresa_headers": [],
+        }
+        with patch("apps.reports.views.pdf.get_report_data", return_value=fake_data), \
+             patch("apps.reports.views.pdf.pisa") as mock_pisa, \
+             patch("apps.reports.views.pdf.local_image_to_base64_uri", return_value=""), \
+             self.assertLogs("audit", level="INFO") as cm:
+            mock_pisa.CreatePDF.return_value = MagicMock(err=0)
+            self.client.get(reverse("reports:report_pdf") + "?rowid=TEST-ID")
+        event_types = [r.event_type for r in cm.records]
+        self.assertIn("data.report.exported", event_types)
