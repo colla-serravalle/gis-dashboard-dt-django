@@ -336,16 +336,7 @@ class UserCreatedEventTest(SimpleTestCase):
 
 
 # Minimal middleware stack for authorization tests — includes ServiceAccessMiddleware
-_AUTHZ_MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "apps.authorization.middleware.ServiceAccessMiddleware",
-]
+_AUTHZ_MIDDLEWARE = _TEST_MIDDLEWARE + ["apps.authorization.middleware.ServiceAccessMiddleware"]
 
 
 from apps.authorization.models import Service
@@ -357,35 +348,36 @@ from apps.authorization.models import Service
 )
 class AuthzDeniedEventTest(TestCase):
 
+    def setUp(self):
+        self.user = User.objects.create_user("authz_testuser", password="password")
+
     def test_access_denied_service_not_found(self):
         """Test authz.access.denied event when service record does not exist."""
-        # Create a regular (non-superuser) user
-        user = User.objects.create_user("testuser", password="password")
-        self.client.force_login(user)
+        self.client.force_login(self.user)
 
         # Make a GET request to /reports/ which maps to 'reports' app_label
         # and has no Service record. Since DEFAULT_POLICY is "deny", this should
         # trigger authz.access.denied with reason="service_not_found"
-        with self.assertLogs("audit", level="WARNING") as cm:
-            response = self.client.get("/reports/")
+        response = self.client.get("/reports/")
 
-        # Check that the response is 403 Forbidden
+        # Check that the response is 403 Forbidden before checking logs
         self.assertEqual(response.status_code, 403)
 
-        # Check that authz.access.denied event was emitted
-        event_types = [r.event_type for r in cm.records]
-        self.assertIn("authz.access.denied", event_types)
+        # Now verify the audit event was emitted by making another request
+        # inside the assertLogs context
+        with self.assertLogs("audit", level="WARNING") as cm:
+            self.client.get("/reports/")
 
-        # Find the specific event and verify detail
-        record = next(r for r in cm.records if r.event_type == "authz.access.denied")
+        # Check that authz.access.denied event was emitted
+        records = [r for r in cm.records if r.event_type == "authz.access.denied"]
+        self.assertTrue(records, "No authz.access.denied event was emitted")
+        record = records[0]
         self.assertEqual(record.detail["app_label"], "reports")
         self.assertEqual(record.detail["reason"], "service_not_found")
 
     def test_access_denied_group_not_permitted(self):
         """Test authz.access.denied event when user lacks group access to service."""
-        # Create a regular user (no groups)
-        user = User.objects.create_user("testuser2", password="password")
-        self.client.force_login(user)
+        self.client.force_login(self.user)
 
         # Create a Service record for 'segnalazioni' app with no allowed_groups
         service = Service.objects.create(
@@ -396,17 +388,19 @@ class AuthzDeniedEventTest(TestCase):
 
         # Make a GET request to /segnalazioni/ which maps to 'segnalazioni' app_label
         # User has no groups, so service.user_has_access() returns False
-        with self.assertLogs("audit", level="WARNING") as cm:
-            response = self.client.get("/segnalazioni/")
+        response = self.client.get("/segnalazioni/")
 
-        # Check that the response is 403 Forbidden
+        # Check that the response is 403 Forbidden before checking logs
         self.assertEqual(response.status_code, 403)
 
-        # Check that authz.access.denied event was emitted
-        event_types = [r.event_type for r in cm.records]
-        self.assertIn("authz.access.denied", event_types)
+        # Now verify the audit event was emitted by making another request
+        # inside the assertLogs context
+        with self.assertLogs("audit", level="WARNING") as cm:
+            self.client.get("/segnalazioni/")
 
-        # Find the specific event and verify detail
-        record = next(r for r in cm.records if r.event_type == "authz.access.denied")
+        # Check that authz.access.denied event was emitted
+        records = [r for r in cm.records if r.event_type == "authz.access.denied"]
+        self.assertTrue(records, "No authz.access.denied event was emitted")
+        record = records[0]
         self.assertEqual(record.detail["app_label"], "segnalazioni")
         self.assertEqual(record.detail["reason"], "group_not_permitted")
