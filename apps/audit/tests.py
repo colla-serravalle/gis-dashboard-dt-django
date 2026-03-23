@@ -507,6 +507,8 @@ class ReportDataAccessEventTest(TestCase):
             self.client.get(reverse("reports:report_list"))
         event_types = [r.event_type for r in cm.records]
         self.assertIn("data.report.viewed", event_types)
+        record = next(r for r in cm.records if r.event_type == "data.report.viewed")
+        self.assertIsNone(record.detail.get("report_id"))
 
     def test_pdf_export_emits_data_report_exported(self):
         from unittest.mock import patch, MagicMock
@@ -527,7 +529,9 @@ class ReportDataAccessEventTest(TestCase):
              patch("apps.reports.views.pdf.pisa") as mock_pisa, \
              patch("apps.reports.views.pdf.local_image_to_base64_uri", return_value=""), \
              self.assertLogs("audit", level="INFO") as cm:
-            mock_pisa.CreatePDF.return_value = MagicMock(err=0)
+            mock_pisa.CreatePDF.return_value = 0
             self.client.get(reverse("reports:report_pdf") + "?rowid=TEST-ID")
         event_types = [r.event_type for r in cm.records]
         self.assertIn("data.report.exported", event_types)
+        record = next(r for r in cm.records if r.event_type == "data.report.exported")
+        self.assertIn("report_id", record.detail)
