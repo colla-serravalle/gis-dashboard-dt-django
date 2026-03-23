@@ -535,3 +535,39 @@ class ReportDataAccessEventTest(TestCase):
         self.assertIn("data.report.exported", event_types)
         record = next(r for r in cm.records if r.event_type == "data.report.exported")
         self.assertIn("report_id", record.detail)
+
+
+@override_settings(
+    MIDDLEWARE=_TEST_MIDDLEWARE + ["apps.authorization.middleware.ServiceAccessMiddleware"],
+)
+class ArcGISQueryEventTest(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user("arcgisuser", password="pass")
+        group = Group.objects.create(name="arcgis_group")
+        self.user.groups.add(group)
+
+        core_svc = Service.objects.create(name="Core", app_label="core", is_active=True)
+        core_svc.allowed_groups.set([group])
+        reports_svc = Service.objects.create(name="Reports", app_label="reports", is_active=True)
+        reports_svc.allowed_groups.set([group])
+        reports_api_svc = Service.objects.create(name="Reports API", app_label="reports_api", is_active=True)
+        reports_api_svc.allowed_groups.set([group])
+
+        self.client.force_login(self.user)
+
+    def test_get_data_emits_data_arcgis_queried(self):
+        fake_result = {"features": [{"attributes": {}}]}
+        with patch("apps.reports.views.api.query_feature_layer", return_value=fake_result), \
+             self.assertLogs("audit", level="INFO") as cm:
+            self.client.get("/api/data/")
+        event_types = [r.event_type for r in cm.records]
+        self.assertIn("data.arcgis.queried", event_types)
+
+    def test_arcgis_queried_detail_contains_record_count(self):
+        fake_result = {"features": [{"attributes": {}}, {"attributes": {}}]}
+        with patch("apps.reports.views.api.query_feature_layer", return_value=fake_result), \
+             self.assertLogs("audit", level="INFO") as cm:
+            self.client.get("/api/data/")
+        record = next(r for r in cm.records if r.event_type == "data.arcgis.queried")
+        self.assertEqual(record.detail["record_count"], 2)

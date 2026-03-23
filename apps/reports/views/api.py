@@ -8,6 +8,7 @@ from django.views.decorators.http import require_GET
 
 from apps.core.services.arcgis import query_feature_layer, get_attachments, get_arcgis_service
 from apps.reports.mappings import get_field_value, format_date
+from apps.audit.utils import emit_audit_event
 
 logger = logging.getLogger(__name__)
 
@@ -199,6 +200,12 @@ def get_data(request):
 
         if 'error' in result:
             return JsonResponse({'error': result['error']}, status=500)
+
+        if "features" in result:
+            emit_audit_event(request, "data.arcgis.queried", detail={
+                "layer_id": 0,
+                "record_count": len(result.get("features", [])),
+            })
 
         features = result.get('features', [])
 
