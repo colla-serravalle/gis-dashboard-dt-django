@@ -182,7 +182,7 @@ See [.env.example](.env.example) for all available configuration options:
 | `ALLOWED_HOSTS` | No | Comma-separated allowed hosts |
 | `ARCGIS_USERNAME` | Yes | ArcGIS Enterprise portal username |
 | `ARCGIS_PASSWORD` | Yes | ArcGIS Enterprise portal password |
-| `ARCGIS_PORTAL_URL` | No | Token generation endpoint |
+| `ARCGIS_PORTAL_TOKEN_URL` | No | Token generation endpoint |
 | `ARCGIS_FEATURE_SERVICE_URL` | No | Feature service base URL |
 | `ARCGIS_REFERER` | No | Referer for token binding |
 | `ARCGIS_TOKEN_EXPIRATION_MINUTES` | No | Token TTL in minutes (default: `60`) |

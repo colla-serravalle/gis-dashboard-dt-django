@@ -223,8 +223,8 @@ SERVICE_AUTH_DEFAULT_POLICY = "deny"
 # ArcGIS Configuration
 # =============================================================================
 
-ARCGIS_PORTAL_URL = os.getenv(
-    'ARCGIS_PORTAL_URL',
+ARCGIS_PORTAL_TOKEN_URL = os.getenv(
+    'ARCGIS_PORTAL_TOKEN_URL',
     'https://gisserver.serravalle.it/portal/sharing/rest/generateToken'
 )
 
@@ -235,7 +235,7 @@ ARCGIS_FEATURE_SERVICE_URL = os.getenv(
 
 ARCGIS_USERNAME = os.getenv('ARCGIS_USERNAME', '')
 ARCGIS_PASSWORD = os.getenv('ARCGIS_PASSWORD', '')
-ARCGIS_REFERER = os.getenv('ARCGIS_REFERER', 'https://dtserravalle.altervista.org/')
+ARCGIS_REFERER = os.getenv('ARCGIS_REFERER', 'https://reports.serravalle.it/')
 ARCGIS_TOKEN_EXPIRATION_MINUTES = int(os.getenv('ARCGIS_TOKEN_EXPIRATION_MINUTES', 60))
 
 # Base portal URL (without /sharing/rest/...) used to build content item download URLs.

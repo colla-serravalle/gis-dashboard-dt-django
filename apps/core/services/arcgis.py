@@ -4,7 +4,6 @@ ArcGIS Service for querying feature layers and managing tokens.
 Ported from PHP ArcGISService.php
 """
 
-import time
 import logging
 import threading
 import requests
@@ -24,7 +23,7 @@ class ArcGISService:
     _token_lock = threading.Lock()
 
     def __init__(self):
-        self.portal_url = settings.ARCGIS_PORTAL_URL
+        self.portal_url = settings.ARCGIS_PORTAL_TOKEN_URL
         self.feature_service_url = settings.ARCGIS_FEATURE_SERVICE_URL
         self.username = settings.ARCGIS_USERNAME
         self.password = settings.ARCGIS_PASSWORD
