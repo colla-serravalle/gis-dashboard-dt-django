@@ -533,6 +533,33 @@ h2, p{
     font-size: 0.9em;
     margin: 2px;
 }
+.tag-tipo-intervento {
+    display: inline-block;
+    background-color: #fff3cd;
+    color: #7a5800;
+    padding: 2px 10px;
+    border-radius: 2em;
+    font-size: 0.9em;
+    margin: 2px;
+}
+.tag-corsia {
+    display: inline-block;
+    background-color: #d1ecf1;
+    color: #0c5460;
+    padding: 2px 10px;
+    border-radius: 2em;
+    font-size: 0.9em;
+    margin: 2px;
+}
+.tag-corsie-svincolo {
+    display: inline-block;
+    background-color: #e8d5f5;
+    color: #5b2d82;
+    padding: 2px 10px;
+    border-radius: 2em;
+    font-size: 0.9em;
+    margin: 2px;
+}
 /* FINE STILE TAGS*/
 
 /*INIZIO STILE TABELLA - Material Design 3 Style*/

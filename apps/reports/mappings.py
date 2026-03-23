@@ -72,6 +72,7 @@ FIELD_LABELS = {
 
 # =============================================================================
 # Field Values - Map coded values to human-readable labels
+# FIELD_VALUES viene mantenuto hardcoded come fallback nel caso in cui non si riesca a recuperare la mappatura dai csv su ArcGIS Portal.
 # =============================================================================
 
 FIELD_VALUES = {
@@ -497,12 +498,34 @@ def get_field_value(field_name: str, value: Any) -> str:
             except (ValueError, TypeError):
                 pass
 
-    # Check for field value mapping
-    if field_name in FIELD_VALUES:
-        if value in FIELD_VALUES[field_name]:
-            return FIELD_VALUES[field_name][value]
+    # CSV-based mapping (primary source, lazy-loaded with TTL refresh).
+    # Raises explicitly on fetch failure — callers receive a Django 500.
+    from apps.core.services.csv_mapping import get_csv_mappings
+    csv_mappings = get_csv_mappings(app='reports')
+    if field_name in csv_mappings:
+        mapping = csv_mappings[field_name]
+        raw = str(value)
+        # Direct lookup first (single value or already a known key).
+        if raw in mapping:
+            return mapping[raw]
+        # Handle comma-separated multi-values (e.g. tipo_intervento_pav).
+        if ',' in raw:
+            tokens = [t.strip() for t in raw.split(',')]
+            return ', '.join(mapping.get(t, t) for t in tokens)
+        return raw
 
-    # Return original value
+    # Hardcoded fallback for fields not yet present in any configured CSV.
+    if field_name in FIELD_VALUES:
+        field_map = FIELD_VALUES[field_name]
+        if value in field_map:
+            return field_map[value]
+        raw = str(value)
+        # Handle comma-separated multi-values in hardcoded fallback too.
+        if ',' in raw:
+            tokens = [t.strip() for t in raw.split(',')]
+            return ', '.join(field_map.get(t, t) for t in tokens)
+
+    # Return original value as string (preserves existing contract).
     return str(value) if value is not None else ''
 
 
@@ -570,7 +593,15 @@ def process_features(features: list, section: str = 'main') -> list:
 
 
 def get_field_options(field_name: str) -> dict:
-    """Get all possible values for a field (useful for dropdowns)."""
+    """Get all possible values for a field (useful for dropdowns).
+
+    CSV-based mappings take priority over hardcoded FIELD_VALUES.
+    Raises explicitly if the CSV fetch fails.
+    """
+    from apps.core.services.csv_mapping import get_csv_mappings
+    csv_mappings = get_csv_mappings(app='reports')
+    if field_name in csv_mappings:
+        return csv_mappings[field_name]
     return FIELD_VALUES.get(field_name, {})
 
 

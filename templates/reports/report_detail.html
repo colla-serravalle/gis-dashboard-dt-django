@@ -54,7 +54,17 @@
     {% for attr in location_data %}
     <tr>
         <th>{{ attr.label }}</th>
-        <td>{{ attr.value }}</td>
+        <td>
+            {% if attr.field == 'corsie_svincolo' %}
+                {% for part in attr.value|default:""|split:"," %}
+                <span class="tag-corsie-svincolo">{{ part|trim }}</span>
+                {% empty %}
+                {{ attr.value }}
+                {% endfor %}
+            {% else %}
+                {{ attr.value }}
+            {% endif %}
+        </td>
     </tr>
     {% endfor %}
 </table>
@@ -87,7 +97,23 @@
     {% for row in pk_pav_data %}
     <tr>
         {% for attr in row %}
-        <td>{{ attr.value }}</td>
+        <td>
+            {% if attr.field == 'corsia' %}
+                {% for part in attr.value|default:""|split:"," %}
+                <span class="tag-corsia">{{ part|trim }}</span>
+                {% empty %}
+                {{ attr.value }}
+                {% endfor %}
+            {% elif attr.field == 'tipo_intervento_pav' %}
+                {% for part in attr.value|default:""|split:"," %}
+                <span class="tag-tipo-intervento">{{ part|trim }}</span>
+                {% empty %}
+                {{ attr.value }}
+                {% endfor %}
+            {% else %}
+                {{ attr.value }}
+            {% endif %}
+        </td>
         {% endfor %}
     </tr>
     {% endfor %}
