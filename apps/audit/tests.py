@@ -428,22 +428,29 @@ class GroupChangedSignalTest(TestCase):
     def test_removing_group_emits_authz_group_changed(self):
         self.user.groups.add(self.group_a)
         with self.assertLogs("audit", level="INFO") as cm:
-            self.user.groups.remove(self.group_a)
+            with self.captureOnCommitCallbacks(execute=True):
+                self.user.groups.remove(self.group_a)
         event_types = [r.event_type for r in cm.records]
         self.assertIn("authz.group.changed", event_types)
 
     def test_no_op_sync_does_not_emit(self):
         """Remove group_a then add it back — net zero change should not emit."""
         self.user.groups.add(self.group_a)
-        # Simulate sync_user: remove-then-add the same group
+
         try:
             with self.assertLogs("audit", level="INFO") as cm:
-                self.user.groups.remove(self.group_a)  # pre_remove snapshot taken
-                self.user.groups.add(self.group_a)     # post_add: same state → skip
-            # If we get here, check that no authz.group.changed was emitted
-            group_change_events = [r for r in cm.records
-                                   if r.event_type == "authz.group.changed"]
-            self.assertEqual(len(group_change_events), 0)
-        except AssertionError:
-            # assertLogs raises if NO logs at all — that's fine too (nothing emitted)
-            pass
+                with self.captureOnCommitCallbacks(execute=True):
+                    self.user.groups.remove(self.group_a)
+                    self.user.groups.add(self.group_a)
+            # assertLogs didn't raise → some log was emitted — check no authz.group.changed
+            group_events = [r for r in cm.records if r.event_type == "authz.group.changed"]
+            self.assertEqual(
+                len(group_events), 0,
+                f"Spurious authz.group.changed emitted on no-op sync: "
+                f"{[r.detail for r in group_events]}",
+            )
+        except AssertionError as e:
+            if "no logs of level" in str(e):
+                pass  # No logs emitted at all — correct behavior
+            else:
+                raise
