@@ -503,13 +503,27 @@ def get_field_value(field_name: str, value: Any) -> str:
     from apps.core.services.csv_mapping import get_csv_mappings
     csv_mappings = get_csv_mappings(app='reports')
     if field_name in csv_mappings:
-        # str(value) for uniform comparison: CSV keys are always strings.
-        return csv_mappings[field_name].get(str(value), str(value))
+        mapping = csv_mappings[field_name]
+        raw = str(value)
+        # Direct lookup first (single value or already a known key).
+        if raw in mapping:
+            return mapping[raw]
+        # Handle comma-separated multi-values (e.g. tipo_intervento_pav).
+        if ',' in raw:
+            tokens = [t.strip() for t in raw.split(',')]
+            return ', '.join(mapping.get(t, t) for t in tokens)
+        return raw
 
     # Hardcoded fallback for fields not yet present in any configured CSV.
     if field_name in FIELD_VALUES:
-        if value in FIELD_VALUES[field_name]:
-            return FIELD_VALUES[field_name][value]
+        field_map = FIELD_VALUES[field_name]
+        if value in field_map:
+            return field_map[value]
+        raw = str(value)
+        # Handle comma-separated multi-values in hardcoded fallback too.
+        if ',' in raw:
+            tokens = [t.strip() for t in raw.split(',')]
+            return ', '.join(field_map.get(t, t) for t in tokens)
 
     # Return original value as string (preserves existing contract).
     return str(value) if value is not None else ''
