@@ -53,14 +53,13 @@ def _emit_group_change(username, added_pks, removed_pks):
     })
 
 
-@receiver(m2m_changed, sender=User.groups.through)
+@receiver(m2m_changed, sender=User.groups.through, dispatch_uid="audit.on_user_groups_changed")
 def on_user_groups_changed(sender, instance, action, pk_set, **kwargs):
     if action == "pre_remove" and pk_set:
         _tl.user_pk = instance.pk
         _tl.groups_before = set(instance.groups.values_list("pk", flat=True))
         _tl.removed_pks = frozenset(pk_set)
-        if not hasattr(_tl, "post_add_handled"):
-            _tl.post_add_handled = set()
+        _tl.post_add_handled = set()  # reset at start of each operation
 
     elif action == "post_remove":
         if getattr(_tl, "user_pk", None) != instance.pk:
@@ -71,12 +70,15 @@ def on_user_groups_changed(sender, instance, action, pk_set, **kwargs):
         user_pk = instance.pk
         username = instance.username
         removed_pks = getattr(_tl, "removed_pks", frozenset())
+        # Capture the set by reference before the closure definition
+        if not hasattr(_tl, "post_add_handled"):
+            _tl.post_add_handled = set()
+        handled_ref = _tl.post_add_handled
 
         @transaction.on_commit
         def maybe_emit_standalone_remove():
-            handled = getattr(_tl, "post_add_handled", set())
-            if user_pk in handled:
-                handled.discard(user_pk)
+            if user_pk in handled_ref:
+                handled_ref.discard(user_pk)
                 return
             _emit_group_change(username, added_pks=set(), removed_pks=removed_pks)
 
@@ -106,6 +108,8 @@ def on_user_groups_changed(sender, instance, action, pk_set, **kwargs):
 
         else:
             # Standalone add.
+            if not hasattr(_tl, "post_add_handled"):
+                _tl.post_add_handled = set()
             added_pks = pk_set or set()
             if added_pks:
                 _emit_group_change(instance.username, added_pks=added_pks, removed_pks=set())
