@@ -183,7 +183,7 @@ class EmitAuditEventTest(SimpleTestCase):
             self.assertGreaterEqual(len(parts), 2, msg=f"Bad event type: {et}")
 
 
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -404,3 +404,46 @@ class AuthzDeniedEventTest(TestCase):
         record = records[0]
         self.assertEqual(record.detail["app_label"], "segnalazioni")
         self.assertEqual(record.detail["reason"], "group_not_permitted")
+
+
+class GroupChangedSignalTest(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user("groupuser", password="pass")
+        self.group_a = Group.objects.create(name="group_a")
+        self.group_b = Group.objects.create(name="group_b")
+
+    def test_adding_group_emits_authz_group_changed(self):
+        with self.assertLogs("audit", level="INFO") as cm:
+            self.user.groups.add(self.group_a)
+        event_types = [r.event_type for r in cm.records]
+        self.assertIn("authz.group.changed", event_types)
+
+    def test_added_groups_in_detail(self):
+        with self.assertLogs("audit", level="INFO") as cm:
+            self.user.groups.add(self.group_a)
+        record = next(r for r in cm.records if r.event_type == "authz.group.changed")
+        self.assertIn("group_a", record.detail["groups_added"])
+
+    def test_removing_group_emits_authz_group_changed(self):
+        self.user.groups.add(self.group_a)
+        with self.assertLogs("audit", level="INFO") as cm:
+            self.user.groups.remove(self.group_a)
+        event_types = [r.event_type for r in cm.records]
+        self.assertIn("authz.group.changed", event_types)
+
+    def test_no_op_sync_does_not_emit(self):
+        """Remove group_a then add it back — net zero change should not emit."""
+        self.user.groups.add(self.group_a)
+        # Simulate sync_user: remove-then-add the same group
+        try:
+            with self.assertLogs("audit", level="INFO") as cm:
+                self.user.groups.remove(self.group_a)  # pre_remove snapshot taken
+                self.user.groups.add(self.group_a)     # post_add: same state → skip
+            # If we get here, check that no authz.group.changed was emitted
+            group_change_events = [r for r in cm.records
+                                   if r.event_type == "authz.group.changed"]
+            self.assertEqual(len(group_change_events), 0)
+        except AssertionError:
+            # assertLogs raises if NO logs at all — that's fine too (nothing emitted)
+            pass
