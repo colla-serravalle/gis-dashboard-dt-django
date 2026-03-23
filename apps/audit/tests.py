@@ -437,20 +437,7 @@ class GroupChangedSignalTest(TestCase):
         """Remove group_a then add it back — net zero change should not emit."""
         self.user.groups.add(self.group_a)
 
-        try:
-            with self.assertLogs("audit", level="INFO") as cm:
-                with self.captureOnCommitCallbacks(execute=True):
-                    self.user.groups.remove(self.group_a)
-                    self.user.groups.add(self.group_a)
-            # assertLogs didn't raise → some log was emitted — check no authz.group.changed
-            group_events = [r for r in cm.records if r.event_type == "authz.group.changed"]
-            self.assertEqual(
-                len(group_events), 0,
-                f"Spurious authz.group.changed emitted on no-op sync: "
-                f"{[r.detail for r in group_events]}",
-            )
-        except AssertionError as e:
-            if "no logs of level" in str(e):
-                pass  # No logs emitted at all — correct behavior
-            else:
-                raise
+        with self.assertNoLogs("audit", level="INFO"):
+            with self.captureOnCommitCallbacks(execute=True):
+                self.user.groups.remove(self.group_a)
+                self.user.groups.add(self.group_a)
