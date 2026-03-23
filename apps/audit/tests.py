@@ -279,3 +279,134 @@ class AuthEventTest(TestCase):
         record = next(r for r in cm.records if r.event_type == "auth.login.locked")
         self.assertIn("attempt_count", record.detail)
         self.assertIn("locked_until", record.detail)
+
+
+from unittest.mock import patch, MagicMock
+
+from apps.accounts.auth import AzureOIDCBackend
+
+
+class UserCreatedEventTest(SimpleTestCase):
+
+    def test_create_user_emits_auth_user_created(self):
+        backend = AzureOIDCBackend()
+        mock_request = MagicMock()
+        mock_request.user = MagicMock(is_authenticated=False)
+        mock_request.session = MagicMock(session_key="sess-xyz")
+        mock_request.META = {"REMOTE_ADDR": "10.0.0.1"}
+        mock_request.path = "/oidc/callback/"
+        mock_request.method = "GET"
+        backend.request = mock_request
+
+        claims = {
+            "email": "new.user@example.com",
+            "given_name": "New",
+            "family_name": "User",
+        }
+
+        with patch.object(backend.UserModel.objects, "create_user") as mock_create, \
+             patch.object(backend, "sync_user"), \
+             self.assertLogs("audit", level="INFO") as cm:
+            mock_create.return_value = MagicMock(email="new.user@example.com")
+            backend.create_user(claims)
+
+        event_types = [r.event_type for r in cm.records]
+        self.assertIn("auth.user.created", event_types)
+
+    def test_create_user_detail_contains_email(self):
+        backend = AzureOIDCBackend()
+        mock_request = MagicMock()
+        mock_request.user = MagicMock(is_authenticated=False)
+        mock_request.session = MagicMock(session_key="sess-xyz")
+        mock_request.META = {"REMOTE_ADDR": "10.0.0.1"}
+        mock_request.path = "/oidc/callback/"
+        mock_request.method = "GET"
+        backend.request = mock_request
+
+        claims = {"email": "new.user@example.com", "given_name": "New", "family_name": "User"}
+
+        with patch.object(backend.UserModel.objects, "create_user") as mock_create, \
+             patch.object(backend, "sync_user"), \
+             self.assertLogs("audit", level="INFO") as cm:
+            mock_create.return_value = MagicMock(email="new.user@example.com")
+            backend.create_user(claims)
+
+        record = next(r for r in cm.records if r.event_type == "auth.user.created")
+        self.assertEqual(record.detail["email"], "new.user@example.com")
+
+
+# Minimal middleware stack for authorization tests — includes ServiceAccessMiddleware
+_AUTHZ_MIDDLEWARE = [
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "apps.authorization.middleware.ServiceAccessMiddleware",
+]
+
+
+from apps.authorization.models import Service
+
+
+@override_settings(
+    MIDDLEWARE=_AUTHZ_MIDDLEWARE,
+    AUTHENTICATION_BACKENDS=["django.contrib.auth.backends.ModelBackend"],
+)
+class AuthzDeniedEventTest(TestCase):
+
+    def test_access_denied_service_not_found(self):
+        """Test authz.access.denied event when service record does not exist."""
+        # Create a regular (non-superuser) user
+        user = User.objects.create_user("testuser", password="password")
+        self.client.force_login(user)
+
+        # Make a GET request to /reports/ which maps to 'reports' app_label
+        # and has no Service record. Since DEFAULT_POLICY is "deny", this should
+        # trigger authz.access.denied with reason="service_not_found"
+        with self.assertLogs("audit", level="WARNING") as cm:
+            response = self.client.get("/reports/")
+
+        # Check that the response is 403 Forbidden
+        self.assertEqual(response.status_code, 403)
+
+        # Check that authz.access.denied event was emitted
+        event_types = [r.event_type for r in cm.records]
+        self.assertIn("authz.access.denied", event_types)
+
+        # Find the specific event and verify detail
+        record = next(r for r in cm.records if r.event_type == "authz.access.denied")
+        self.assertEqual(record.detail["app_label"], "reports")
+        self.assertEqual(record.detail["reason"], "service_not_found")
+
+    def test_access_denied_group_not_permitted(self):
+        """Test authz.access.denied event when user lacks group access to service."""
+        # Create a regular user (no groups)
+        user = User.objects.create_user("testuser2", password="password")
+        self.client.force_login(user)
+
+        # Create a Service record for 'segnalazioni' app with no allowed_groups
+        service = Service.objects.create(
+            name="Segnalazioni",
+            app_label="segnalazioni",
+            is_active=True,
+        )
+
+        # Make a GET request to /segnalazioni/ which maps to 'segnalazioni' app_label
+        # User has no groups, so service.user_has_access() returns False
+        with self.assertLogs("audit", level="WARNING") as cm:
+            response = self.client.get("/segnalazioni/")
+
+        # Check that the response is 403 Forbidden
+        self.assertEqual(response.status_code, 403)
+
+        # Check that authz.access.denied event was emitted
+        event_types = [r.event_type for r in cm.records]
+        self.assertIn("authz.access.denied", event_types)
+
+        # Find the specific event and verify detail
+        record = next(r for r in cm.records if r.event_type == "authz.access.denied")
+        self.assertEqual(record.detail["app_label"], "segnalazioni")
+        self.assertEqual(record.detail["reason"], "group_not_permitted")
