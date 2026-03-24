@@ -441,7 +441,7 @@ LOGGING = {
             'filters': ['suppress_browser_404s'],
         },
         'app_file': {
-            'level': 'DEBUG',
+            'level': LOG_LEVEL,
             'class': 'config.settings.CompressedRotatingFileHandler',  # reuse existing class
             'filename': BASE_DIR / 'logs' / 'app.log',
             'maxBytes': 1024 * 1024 * 10,  # 10 MB
@@ -475,7 +475,7 @@ LOGGING = {
         },
         'apps': {
             'handlers': ['app_file'],
-            'level': 'DEBUG',
+            'level': LOG_LEVEL,
             'propagate': False,
         },
         'audit': {
