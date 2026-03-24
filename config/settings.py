@@ -420,6 +420,9 @@ LOGGING = {
         'audit_json': {
             '()': 'apps.audit.formatters.NIS2JsonFormatter',
         },
+        'app_json': {
+            '()': 'apps.audit.formatters.AppJsonFormatter',
+        },
     },
     'filters': {
         # Suppress browser-generated 404 warnings (favicon, .well-known, etc.)
@@ -437,13 +440,14 @@ LOGGING = {
             'formatter': 'verbose',
             'filters': ['suppress_browser_404s'],
         },
-        'arcgis_file': {
+        'app_file': {
             'level': 'DEBUG',
-            'class': 'config.settings.CompressedRotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'arcgis.log',
+            'class': 'config.settings.CompressedRotatingFileHandler',  # reuse existing class
+            'filename': BASE_DIR / 'logs' / 'app.log',
             'maxBytes': 1024 * 1024 * 10,  # 10 MB
             'backupCount': 5,
-            'formatter': 'verbose',
+            'encoding': 'utf-8',
+            'formatter': 'app_json',
         },
         'console': {
             'level': LOG_LEVEL,
@@ -469,8 +473,8 @@ LOGGING = {
             'level': 'WARNING',  # Keep at WARNING to catch 404s and 500s
             'propagate': False,
         },
-        'apps.core.services.arcgis': {
-            'handlers': ['arcgis_file', 'console'],
+        'apps': {
+            'handlers': ['app_file'],
             'level': 'DEBUG',
             'propagate': False,
         },
