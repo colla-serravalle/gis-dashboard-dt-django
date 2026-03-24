@@ -1,7 +1,7 @@
 import json
 import logging
 
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, TestCase
 
 from apps.audit.formatters import NIS2JsonFormatter
 
@@ -15,6 +15,87 @@ def _make_record(level=logging.INFO, **extra):
     for key, value in extra.items():
         setattr(record, key, value)
     return record
+
+
+class AppJsonFormatterTest(TestCase):
+
+    def _make_record(self, name="apps.core.services.arcgis", msg="test message"):
+        logger = logging.getLogger(name)
+        record = logger.makeRecord(
+            name=name, level=logging.INFO, fn="", lno=0,
+            msg=msg, args=(), exc_info=None,
+        )
+        return record
+
+    def test_format_returns_valid_json(self):
+        from apps.audit.formatters import AppJsonFormatter
+        fmt = AppJsonFormatter()
+        output = fmt.format(self._make_record())
+        data = json.loads(output)
+        self.assertIsInstance(data, dict)
+
+    def test_format_contains_required_fields(self):
+        from apps.audit.formatters import AppJsonFormatter
+        fmt = AppJsonFormatter()
+        data = json.loads(fmt.format(self._make_record()))
+        for field in ("timestamp", "level", "app", "message"):
+            self.assertIn(field, data)
+
+    def test_app_field_equals_logger_name(self):
+        from apps.audit.formatters import AppJsonFormatter
+        fmt = AppJsonFormatter()
+        data = json.loads(fmt.format(self._make_record(name="apps.reports.views.api")))
+        self.assertEqual(data["app"], "apps.reports.views.api")
+
+    def test_message_field_equals_log_message(self):
+        from apps.audit.formatters import AppJsonFormatter
+        fmt = AppJsonFormatter()
+        data = json.loads(fmt.format(self._make_record(msg="hello world")))
+        self.assertEqual(data["message"], "hello world")
+
+    def test_timestamp_is_iso8601_with_utc_offset(self):
+        from apps.audit.formatters import AppJsonFormatter
+        fmt = AppJsonFormatter()
+        data = json.loads(fmt.format(self._make_record()))
+        # Matches e.g. 2026-03-24T10:23:00.123456+01:00
+        self.assertRegex(data["timestamp"], r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.*[+-]\d{2}:\d{2}")
+
+    def test_now_returns_iso8601_with_utc_offset(self):
+        from apps.audit.formatters import AppJsonFormatter
+        fmt = AppJsonFormatter()
+        ts = fmt._now()
+        self.assertRegex(ts, r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.*[+-]\d{2}:\d{2}")
+
+
+class NIS2FormatterInheritanceTest(TestCase):
+
+    def test_nis2_is_subclass_of_app_formatter(self):
+        from apps.audit.formatters import AppJsonFormatter, NIS2JsonFormatter
+        self.assertTrue(issubclass(NIS2JsonFormatter, AppJsonFormatter))
+
+    def test_nis2_does_not_override_now(self):
+        from apps.audit.formatters import AppJsonFormatter, NIS2JsonFormatter
+        # _now() must be inherited, not overridden
+        self.assertNotIn("_now", NIS2JsonFormatter.__dict__)
+
+    def test_nis2_output_excludes_message_and_app(self):
+        from apps.audit.formatters import NIS2JsonFormatter
+        logger = logging.getLogger("audit")
+        record = logger.makeRecord(
+            name="audit", level=logging.INFO, fn="", lno=0,
+            msg="auth.login.success", args=(), exc_info=None,
+        )
+        record.event_type = "auth.login.success"
+        record.user = "mario"
+        record.ip = "127.0.0.1"
+        record.session_id = "abc"
+        record.path = "/login/"
+        record.method = "POST"
+        record.detail = {}
+        fmt = NIS2JsonFormatter()
+        data = json.loads(fmt.format(record))
+        self.assertNotIn("message", data)
+        self.assertNotIn("app", data)
 
 
 class NIS2JsonFormatterTest(SimpleTestCase):
@@ -184,7 +265,7 @@ class EmitAuditEventTest(SimpleTestCase):
 
 
 from django.contrib.auth.models import Group, User
-from django.test import TestCase, override_settings
+from django.test import override_settings
 from django.urls import reverse
 
 # Minimal middleware stack for integration tests — strips OIDC SessionRefresh
