@@ -5,6 +5,7 @@ Migrated from PHP application.
 """
 
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 import ssl
@@ -339,6 +340,26 @@ class CompressedRotatingFileHandler(logging.handlers.RotatingFileHandler):
         os.remove(source)
 
 
+class WindowsSafeTimedRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
+    """
+    TimedRotatingFileHandler that uses copy+truncate on Windows.
+
+    The default implementation calls os.rename(), which Windows refuses when
+    any process holds an open handle to the file (WinError 32). Copy+truncate
+    preserves the original inode so all existing handles stay valid.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if sys.platform == "win32":
+            self.rotator = self._copy_truncate_rotator
+
+    @staticmethod
+    def _copy_truncate_rotator(source: str, dest: str) -> None:
+        shutil.copy2(source, dest)
+        open(source, "w").close()  # noqa: WPS515  # truncate in-place
+
+
 class SuppressBrowserGenerated404Filter(logging.Filter):
     """
     Logging filter to suppress 404 warnings for known browser-generated requests.
@@ -432,7 +453,7 @@ LOGGING = {
         },
         'audit_file': {
             'level': 'INFO',
-            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'class': 'config.settings.WindowsSafeTimedRotatingFileHandler',
             'filename': BASE_DIR / 'logs' / 'audit.log',
             'when': 'midnight',
             'interval': 1,
