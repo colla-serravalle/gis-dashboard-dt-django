@@ -40,3 +40,6 @@ Userscolla.claude-memchroma/
 
 # Bandit
 .bandit/
+
+# Pip-audit
+.pip-audit/
