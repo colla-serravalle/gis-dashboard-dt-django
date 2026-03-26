@@ -1,7 +1,7 @@
 """Custom template tags for reports app."""
 
 from django import template
-from django.utils.safestring import mark_safe
+from django.utils.html import format_html
 
 register = template.Library()
 
@@ -30,8 +30,9 @@ def route_logo(tratta, width=40):
         }
         logo_file = logo_map.get(tratta_lower, 'default_logo.png')
 
-    return mark_safe(
-        f'<img src="/static/img/loghi-tratte/{logo_file}" alt="{tratta} logo" width="{width}">'
+    return format_html(
+        '<img src="/static/img/loghi-tratte/{}" alt="{} logo" width="{}">',
+        logo_file, tratta, width
     )
 
 

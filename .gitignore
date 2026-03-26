@@ -37,3 +37,6 @@ Userscolla.claude-memchroma/
 *.pfx
 *.pem
 *.key
+
+# Bandit
+.bandit/

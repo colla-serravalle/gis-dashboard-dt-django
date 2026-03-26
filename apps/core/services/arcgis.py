@@ -13,7 +13,7 @@ from django.core.cache import cache
 logger = logging.getLogger(__name__)
 
 # Cache key for ArcGIS token
-ARCGIS_TOKEN_CACHE_KEY = 'arcgis_token'
+ARCGIS_TOKEN_CACHE_KEY = 'arcgis_token' # nosec
 
 
 class ArcGISService:
