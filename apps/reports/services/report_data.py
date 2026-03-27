@@ -1,6 +1,7 @@
 """Service for fetching and processing report data from ArcGIS."""
 
 import math
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from apps.core.services.arcgis import query_feature_layer, get_attachments
@@ -10,6 +11,23 @@ from apps.reports.mappings import (
     process_attributes,
     process_features,
 )
+
+_GUID_RE = re.compile(
+    r'^[{]?[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}[}]?$'
+)
+
+
+def _validate_report_id(report_id):
+    """
+    Validate that report_id matches a GUID/UUID pattern.
+
+    Raises:
+        ValueError: if report_id is None, empty, or not a valid GUID.
+    """
+    if not report_id or not isinstance(report_id, str):
+        raise ValueError("Invalid report_id: value is missing or not a string")
+    if not _GUID_RE.match(report_id):
+        raise ValueError("Invalid report_id: does not match GUID format")
 
 
 def get_report_data(report_id):
@@ -22,6 +40,7 @@ def get_report_data(report_id):
     Returns:
         dict with all processed report data, or None if the main record is not found.
     """
+    _validate_report_id(report_id)
     # Query main record first (needed to validate existence)
     main = query_feature_layer(0, f"uniquerowid='{report_id}'")
 

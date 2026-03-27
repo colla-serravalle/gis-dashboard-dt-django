@@ -329,7 +329,7 @@ class AuthEventTest(TestCase):
     def test_logout_emits_auth_logout(self):
         self.client.force_login(self.user)
         with self.assertLogs("audit", level="INFO") as cm:
-            self.client.get(reverse("accounts:logout"))
+            self.client.post(reverse("accounts:logout"))
         event_types = [r.event_type for r in cm.records]
         self.assertIn("auth.logout", event_types)
 

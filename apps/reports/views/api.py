@@ -245,9 +245,9 @@ def get_data(request):
             'sort_order': sort_order,
         })
 
-    except Exception as e:
+    except Exception:
         logger.exception("Error in get_data")
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({'error': 'Si è verificato un errore interno.'}, status=500)
 
 
 @login_required
@@ -323,9 +323,9 @@ def get_filter_options(request):
 
         return JsonResponse(filter_options)
 
-    except Exception as e:
+    except Exception:
         logger.exception("Error in get_filter_options")
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({'error': 'Si è verificato un errore interno.'}, status=500)
 
 
 @login_required
@@ -352,6 +352,6 @@ def image_proxy(request, layer, object_id, attachment_id):
 
     except ValueError:
         return HttpResponse("Parametri non validi.", status=400)
-    except Exception as e:
+    except Exception:
         logger.exception("Error in image_proxy")
-        return HttpResponse(f"Errore: {str(e)}", status=500)
+        return HttpResponse('Si è verificato un errore interno.', status=500)

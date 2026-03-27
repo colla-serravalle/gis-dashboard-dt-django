@@ -4,8 +4,10 @@ import time
 import logging
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.conf import settings
 from django.views import View
+from django.views.decorators.http import require_POST
 
 from .forms import LoginForm
 from apps.audit.utils import emit_audit_event
@@ -86,8 +88,14 @@ class LoginView(View):
 
                 emit_audit_event(request, "auth.login.success", detail={"auth_method": "local"})
 
-                # Redirect to next URL or home
+                # Redirect to next URL or home — reject cross-host redirects
                 next_url = request.GET.get('next', '/')
+                if not url_has_allowed_host_and_scheme(
+                    url=next_url,
+                    allowed_hosts={request.get_host()},
+                    require_https=request.is_secure(),
+                ):
+                    next_url = '/'
                 return redirect(next_url)
             else:
                 # Login failed
@@ -117,8 +125,9 @@ class LoginView(View):
         return request.META.get('REMOTE_ADDR')
 
 
+@require_POST
 def logout_view(request):
-    """Logout user and redirect to login page."""
+    """Logout user and redirect to login page. Requires POST to prevent CSRF-based force-logout."""
     if request.user.is_authenticated:
         emit_audit_event(request, "auth.logout", detail={})
     logout(request)
