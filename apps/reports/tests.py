@@ -1,3 +1,6 @@
+import json
+from unittest.mock import patch
+
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 
@@ -86,10 +89,6 @@ class PdfExportViewValidationTest(TestCase):
     def test_missing_rowid_returns_400(self):
         response = self.client.get('/reports/pdf/')
         self.assertEqual(response.status_code, 400)
-
-
-import json
-from unittest.mock import patch
 
 
 class ExceptionSanitizationTest(TestCase):
