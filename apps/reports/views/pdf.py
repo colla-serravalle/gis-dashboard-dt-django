@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_GET
 from xhtml2pdf import pisa
@@ -31,7 +31,10 @@ def export_pdf(request):
         return HttpResponse("Parametro 'rowid' mancante.", status=400)
 
     # Fetch all report data
-    data = get_report_data(report_id)
+    try:
+        data = get_report_data(report_id)
+    except ValueError:
+        return HttpResponseBadRequest('ID report non valido.')
     if data is None:
         return HttpResponse("Record non trovato.", status=404)
 

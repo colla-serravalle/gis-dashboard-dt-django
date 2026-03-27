@@ -2,6 +2,7 @@
 
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseBadRequest
 from django.views import View
 from django.utils.decorators import method_decorator
 from django.conf import settings
@@ -46,7 +47,10 @@ class ReportDetailView(View):
         if not report_id:
             return redirect('reports:report_list')
 
-        data = get_report_data(report_id)
+        try:
+            data = get_report_data(report_id)
+        except ValueError:
+            return HttpResponseBadRequest('ID report non valido.')
 
         if data is None:
             return render(request, self.template_name, {
