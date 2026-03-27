@@ -60,7 +60,7 @@ body{
         fill: var(--primary-clr);
     }
 }
-#sidebar a, #sidebar .dropdown-link, #sidebar .logo{
+#sidebar a, #sidebar .dropdown-link, #sidebar .logout-btn, #sidebar .logo{
     border-radius: 2em;
     padding: .85em;
     text-decoration: none;
@@ -69,7 +69,7 @@ body{
     align-items: center;
     gap: 1em;
 }
-.dropdown-link{
+.dropdown-link, .logout-btn{
     width: 100%;
     text-align: left;
     background: none;
