@@ -86,3 +86,38 @@ class PdfExportViewValidationTest(TestCase):
     def test_missing_rowid_returns_400(self):
         response = self.client.get('/reports/pdf/')
         self.assertEqual(response.status_code, 400)
+
+
+import json
+from unittest.mock import patch
+
+
+class ExceptionSanitizationTest(TestCase):
+    """H-5: Raw exception messages must not be returned to API clients."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='apiuser', password='testpassword123',
+            is_superuser=True,
+        )
+        self.client.force_login(self.user, backend='apps.accounts.auth.SuperuserOnlyModelBackend')
+
+    def test_get_data_500_returns_generic_message(self):
+        with patch('apps.reports.views.api.query_feature_layer', side_effect=RuntimeError('secret connection string')):
+            response = self.client.get('/api/data/')
+        self.assertEqual(response.status_code, 500)
+        body = json.loads(response.content)
+        self.assertNotIn('secret connection string', body.get('error', ''))
+
+    def test_get_filter_options_500_returns_generic_message(self):
+        with patch('apps.reports.views.api.query_feature_layer', side_effect=RuntimeError('secret connection string')):
+            response = self.client.get('/api/filters/')
+        self.assertEqual(response.status_code, 500)
+        body = json.loads(response.content)
+        self.assertNotIn('secret connection string', body.get('error', ''))
+
+    def test_image_proxy_500_returns_generic_message(self):
+        with patch('apps.reports.views.api.get_arcgis_service', side_effect=RuntimeError('secret arcgis token')):
+            response = self.client.get('/api/image/0/1/1/')
+        self.assertEqual(response.status_code, 500)
+        self.assertNotIn(b'secret arcgis token', response.content)
