@@ -42,3 +42,25 @@ class OpenRedirectTest(TestCase):
             {'username': 'testuser', 'password': 'testpassword123'},
         )
         self.assertRedirects(response, '/', fetch_redirect_response=False)
+
+
+class LogoutCsrfTest(TestCase):
+    """H-6: Logout must require POST to prevent CSRF-based force-logout."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='logoutuser', password='testpassword123',
+        )
+        self.logout_url = reverse('accounts:logout')
+
+    def test_logout_get_returns_405(self):
+        """GET to logout must be rejected with 405 Method Not Allowed."""
+        self.client.force_login(self.user, backend='apps.accounts.auth.SuperuserOnlyModelBackend')
+        response = self.client.get(self.logout_url)
+        self.assertEqual(response.status_code, 405)
+
+    def test_logout_post_succeeds(self):
+        """Valid POST logs the user out and redirects to login."""
+        self.client.force_login(self.user, backend='apps.accounts.auth.SuperuserOnlyModelBackend')
+        response = self.client.post(self.logout_url)
+        self.assertRedirects(response, '/auth/login/', fetch_redirect_response=False)
