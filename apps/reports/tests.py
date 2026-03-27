@@ -66,3 +66,23 @@ class ReportDetailViewValidationTest(TestCase):
     def test_missing_report_id_redirects(self):
         response = self.client.get('/reports/detail/')
         self.assertEqual(response.status_code, 302)
+
+
+class PdfExportViewValidationTest(TestCase):
+    """H-4: PDF export endpoint returns 400 for invalid report IDs."""
+
+    def setUp(self):
+        # MUST be superuser to bypass ServiceAccessMiddleware
+        self.user = User.objects.create_user(
+            username='pdfuser', password='testpassword123',
+            is_superuser=True,
+        )
+        self.client.force_login(self.user, backend='apps.accounts.auth.SuperuserOnlyModelBackend')
+
+    def test_invalid_rowid_returns_400(self):
+        response = self.client.get("/reports/pdf/?rowid=' OR 1=1 --")
+        self.assertEqual(response.status_code, 400)
+
+    def test_missing_rowid_returns_400(self):
+        response = self.client.get('/reports/pdf/')
+        self.assertEqual(response.status_code, 400)

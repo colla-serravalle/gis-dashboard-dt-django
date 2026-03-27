@@ -25,9 +25,9 @@ def _validate_report_id(report_id):
         ValueError: if report_id is None, empty, or not a valid GUID.
     """
     if not report_id or not isinstance(report_id, str):
-        raise ValueError(f"Invalid report_id: {report_id!r}")
+        raise ValueError("Invalid report_id: value is missing or not a string")
     if not _GUID_RE.match(report_id):
-        raise ValueError(f"Invalid report_id format: {report_id!r}")
+        raise ValueError("Invalid report_id: does not match GUID format")
 
 
 def get_report_data(report_id):
