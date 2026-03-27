@@ -313,12 +313,18 @@ LOCKOUT_DURATION = int(os.getenv('LOCKOUT_DURATION', 900))  # 15 minutes
 
 # Production security headers — only active when DEBUG=False
 if not DEBUG:
-    SECURE_SSL_REDIRECT = True
+    # SSL redirect is handled by the reverse proxy (IIS/nginx), not Django.
+    # Setting this to True would cause an infinite redirect loop because the
+    # proxy terminates TLS and forwards plain HTTP internally.
+    SECURE_SSL_REDIRECT = False
     SECURE_HSTS_SECONDS = 31536000          # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
 
 # =============================================================================
 # Logging Configuration
