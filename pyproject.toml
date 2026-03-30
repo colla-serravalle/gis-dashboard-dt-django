@@ -20,6 +20,7 @@ dependencies = [
     "pyopenssl>=26.0.0",
     "pypdf>=6.9.2",
     "requests>=2.33.0",
+    "cryptography>=46.0.6",
 ]
 
 [tool.uv]
