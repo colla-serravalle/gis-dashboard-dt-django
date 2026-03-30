@@ -64,3 +64,44 @@ class LogoutCsrfTest(TestCase):
         self.client.force_login(self.user, backend='apps.accounts.auth.SuperuserOnlyModelBackend')
         response = self.client.post(self.logout_url)
         self.assertRedirects(response, '/auth/login/', fetch_redirect_response=False)
+
+
+class CookieSecurityFlagsTest(TestCase):
+    """H-1: Session and CSRF cookies must carry HttpOnly and SameSite flags."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='cookieuser', password='testpassword123',
+            is_superuser=True,
+        )
+        self.login_url = reverse('accounts:login')
+
+    def test_session_cookie_is_httponly(self):
+        self.client.post(
+            self.login_url,
+            {'username': 'cookieuser', 'password': 'testpassword123'},
+        )
+        session_cookie = self.client.cookies.get('sessionid')
+        self.assertIsNotNone(session_cookie, "sessionid cookie not set")
+        self.assertTrue(session_cookie['httponly'], "sessionid must be HttpOnly")
+
+    def test_session_cookie_has_samesite_strict(self):
+        self.client.post(
+            self.login_url,
+            {'username': 'cookieuser', 'password': 'testpassword123'},
+        )
+        session_cookie = self.client.cookies.get('sessionid')
+        self.assertIsNotNone(session_cookie)
+        self.assertEqual(session_cookie['samesite'], 'Strict')
+
+    def test_csrf_cookie_is_httponly(self):
+        self.client.get(self.login_url)
+        csrf_cookie = self.client.cookies.get('csrftoken')
+        self.assertIsNotNone(csrf_cookie, "csrftoken cookie not set")
+        self.assertTrue(csrf_cookie['httponly'], "csrftoken must be HttpOnly")
+
+    def test_csrf_cookie_has_samesite_strict(self):
+        self.client.get(self.login_url)
+        csrf_cookie = self.client.cookies.get('csrftoken')
+        self.assertIsNotNone(csrf_cookie)
+        self.assertEqual(csrf_cookie['samesite'], 'Strict')

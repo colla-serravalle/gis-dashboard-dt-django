@@ -192,6 +192,10 @@ OIDC_RENEW_ID_TOKEN_EXPIRY_SECONDS = 900
 SESSION_COOKIE_AGE = int(os.getenv('SESSION_TIMEOUT', 3600))  # 1 hour default
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_SAVE_EVERY_REQUEST = True  # Update session on every request
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Strict'
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = 'Strict'
 
 
 # =============================================================================
