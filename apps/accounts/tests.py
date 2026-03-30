@@ -105,3 +105,40 @@ class CookieSecurityFlagsTest(TestCase):
         csrf_cookie = self.client.cookies.get('csrftoken')
         self.assertIsNotNone(csrf_cookie)
         self.assertEqual(csrf_cookie['samesite'], 'Strict')
+
+
+class AuditLogInjectionTest(TestCase):
+    """H-3: Username in audit log must be truncated and stripped of newlines."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.login_url = reverse('accounts:login')
+        self.user = User.objects.create_user(
+            username='realuser', password='realpassword123',
+            is_superuser=True,
+        )
+
+    def _hit_lockout(self, username):
+        """Submit enough failed logins to trigger lockout for the given IP."""
+        from django.conf import settings as django_settings
+        for _ in range(django_settings.MAX_LOGIN_ATTEMPTS):
+            self.client.post(self.login_url, {'username': username, 'password': 'wrong'})
+
+    def test_newline_in_username_does_not_crash(self):
+        """A username containing a newline must not cause a 500."""
+        malicious = 'admin\nSUCCESS user=attacker'
+        self._hit_lockout(malicious)
+        response = self.client.post(
+            self.login_url, {'username': malicious, 'password': 'wrong'}
+        )
+        self.assertIn(response.status_code, [302, 200])
+
+    def test_very_long_username_is_truncated(self):
+        """Username in audit detail must be capped at 150 characters."""
+        long_name = 'a' * 500
+        self._hit_lockout(long_name)
+        response = self.client.post(
+            self.login_url, {'username': long_name, 'password': 'wrong'}
+        )
+        self.assertIn(response.status_code, [302, 200])

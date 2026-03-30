@@ -71,8 +71,10 @@ class LoginView(View):
         login_attempts = cache.get(cache_key, 0)
 
         if login_attempts >= max_attempts:
+            raw_username = request.POST.get("username", "")
+            safe_username = raw_username.replace('\n', ' ').replace('\r', ' ')[:150]
             emit_audit_event(request, "auth.login.locked", detail={
-                "username_attempted": request.POST.get("username", ""),
+                "username_attempted": safe_username,
                 "attempt_count": login_attempts,
                 "ip": client_ip,
             })
