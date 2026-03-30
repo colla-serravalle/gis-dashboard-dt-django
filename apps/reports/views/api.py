@@ -1,7 +1,9 @@
 """API views for reports app."""
 
 import logging
+import re
 from datetime import datetime, timedelta
+from django.conf import settings
 from django.http import JsonResponse, HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_GET
@@ -35,24 +37,33 @@ def normalize_filter(value):
     return []
 
 
+_FILTER_VALUE_RE = re.compile(r'^[a-zA-Z0-9_\-\. ]+$')
+
+
 def build_where_clause(filters):
     """
     Build an ArcGIS SQL WHERE clause from the parsed filters dict.
 
     String fields use IN (...) for multiple values or = for a single value.
-    Date fields are converted from YYYY-MM-DD to millisecond timestamps.
+    Date fields are validated strictly as YYYY-MM-DD before being interpolated.
+
+    Raises:
+        ValueError: if any filter value fails allowlist/format validation.
 
     Returns:
         str: SQL WHERE clause (never empty — defaults to '1=1')
     """
     conditions = []
 
-    # String equality / IN filters
+    # String equality / IN filters — allowlist each value against a safe regex
     string_fields = ['nome_operatore', 'tratta', 'tipologia_appalto']
     for field in string_fields:
         values = filters.get(field, [])
         if not values:
             continue
+        for v in values:
+            if not _FILTER_VALUE_RE.match(v):
+                raise ValueError(f"Invalid characters in filter value for '{field}': {v!r}")
         escaped = [v.replace("'", "''") for v in values]
         if len(escaped) == 1:
             conditions.append(f"{field} = '{escaped[0]}'")
@@ -65,12 +76,17 @@ def build_where_clause(filters):
     date_to = filters.get('date_to', '')
 
     if date_from:
-        dt = datetime.strptime(date_from, '%Y-%m-%d')
+        try:
+            dt = datetime.strptime(date_from, '%Y-%m-%d')
+        except ValueError:
+            raise ValueError(f"Invalid date_from format (expected YYYY-MM-DD): {date_from!r}")
         conditions.append(f"data_rilevamento >= TIMESTAMP '{dt.strftime('%Y-%m-%d %H:%M:%S')}'")
 
     if date_to:
-        # Use start of the next day as an exclusive upper bound
-        dt = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
+        try:
+            dt = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
+        except ValueError:
+            raise ValueError(f"Invalid date_to format (expected YYYY-MM-DD): {date_to!r}")
         conditions.append(f"data_rilevamento < TIMESTAMP '{dt.strftime('%Y-%m-%d %H:%M:%S')}'")
 
     return ' AND '.join(conditions) if conditions else '1=1'
@@ -175,11 +191,14 @@ def get_data(request):
     try:
         # Parse pagination params
         page = int(request.GET.get('page', 1))
-        per_page = int(request.GET.get('per_page', 10))
+        per_page = min(int(request.GET.get('per_page', 10)), settings.MAX_ITEMS_PER_PAGE)
         offset = (page - 1) * per_page
 
-        # Parse sorting params
+        # Parse sorting params — allowlist to prevent field enumeration
+        _ALLOWED_SORT_FIELDS = {'data_rilevamento', 'nome_operatore', 'tratta', 'tipologia_appalto'}
         sort_by = request.GET.get('sort_by', 'data_rilevamento')
+        if sort_by not in _ALLOWED_SORT_FIELDS:
+            sort_by = 'data_rilevamento'
         sort_order = request.GET.get('sort_order', 'desc').lower()
         if sort_order not in ('asc', 'desc'):
             sort_order = 'desc'
@@ -245,6 +264,9 @@ def get_data(request):
             'sort_order': sort_order,
         })
 
+    except ValueError as exc:
+        logger.warning("Invalid filter parameter in get_data: %s", exc)
+        return JsonResponse({'error': 'Parametro di filtro non valido.'}, status=400)
     except Exception:
         logger.exception("Error in get_data")
         return JsonResponse({'error': 'Si è verificato un errore interno.'}, status=500)

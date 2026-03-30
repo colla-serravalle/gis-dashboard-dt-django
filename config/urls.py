@@ -2,6 +2,7 @@
 URL configuration for GIS Dashboard DT project.
 """
 
+import os
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
@@ -9,7 +10,7 @@ from django.conf.urls.static import static
 from django.views.generic import RedirectView
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path(os.environ.get('DJANGO_ADMIN_URL', 'app-control-panel/'), admin.site.urls),
     path('oidc/', include('mozilla_django_oidc.urls')),
     # Redirect legacy login URL to unified login page
     path('accounts/login/', RedirectView.as_view(url='/auth/login/', permanent=False)),
