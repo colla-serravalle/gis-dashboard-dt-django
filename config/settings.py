@@ -37,7 +37,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-this-in-production')
+SECRET_KEY = os.environ['SECRET_KEY']  # Crash loudly if not set — no insecure fallback
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
@@ -207,9 +207,10 @@ SERVICE_AUTH_EXEMPT_APPS = [
 ]
 
 # URL prefixes that bypass service access checks
+_ADMIN_URL = os.environ.get('DJANGO_ADMIN_URL', 'app-control-panel/')
 SERVICE_AUTH_EXEMPT_URLS = [
     "/oidc/",
-    "/admin/",
+    f"/{_ADMIN_URL.strip('/')}/" if not _ADMIN_URL.startswith('/') else _ADMIN_URL,
     "/static/",
     "/health/",
     "/auth/",

@@ -1,9 +1,9 @@
 """Authentication views."""
 
-import time
 import logging
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
+from django.core.cache import cache
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.conf import settings
 from django.views import View
@@ -44,36 +44,39 @@ class LoginView(View):
 
         form = LoginForm()
 
+        # Validate next_url here so the template never renders an unvalidated redirect
+        raw_next = request.GET.get('next', '')
+        next_url = raw_next if url_has_allowed_host_and_scheme(
+            url=raw_next,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure(),
+        ) else ''
+
         return render(request, self.template_name, {
             'form': form,
             'error_message': error_message,
+            'next_url': next_url,
         })
 
     def post(self, request):
         """Process login form submission."""
         form = LoginForm(request.POST)
 
-        # Check rate limiting
-        login_attempts = request.session.get('login_attempts', 0)
-        last_attempt = request.session.get('last_attempt', 0)
+        # IP-based rate limiting — not bypassable by clearing cookies
+        client_ip = self._get_client_ip(request)
+        cache_key = f'login_attempts_{client_ip}'
         max_attempts = getattr(settings, 'MAX_LOGIN_ATTEMPTS', 5)
         lockout_duration = getattr(settings, 'LOCKOUT_DURATION', 900)
 
-        current_time = time.time()
+        login_attempts = cache.get(cache_key, 0)
 
-        # Check if account is locked
         if login_attempts >= max_attempts:
-            time_passed = current_time - last_attempt
-            if time_passed < lockout_duration:
-                emit_audit_event(request, "auth.login.locked", detail={
-                    "username_attempted": request.POST.get("username", ""),
-                    "attempt_count": login_attempts,
-                    "locked_until": last_attempt + lockout_duration,
-                })
-                return redirect('/auth/login/?error=locked')
-            else:
-                # Reset counter after lockout period
-                request.session['login_attempts'] = 0
+            emit_audit_event(request, "auth.login.locked", detail={
+                "username_attempted": request.POST.get("username", ""),
+                "attempt_count": login_attempts,
+                "ip": client_ip,
+            })
+            return redirect('/auth/login/?error=locked')
 
         if form.is_valid():
             username = form.cleaned_data['username']
@@ -82,8 +85,8 @@ class LoginView(View):
             user = authenticate(request, username=username, password=password)
 
             if user is not None:
-                # Login successful
-                request.session['login_attempts'] = 0
+                # Login successful — clear IP-based counter
+                cache.delete(cache_key)
                 login(request, user)
 
                 emit_audit_event(request, "auth.login.success", detail={"auth_method": "local"})
@@ -98,13 +101,14 @@ class LoginView(View):
                     next_url = '/'
                 return redirect(next_url)
             else:
-                # Login failed
-                request.session['login_attempts'] = login_attempts + 1
-                request.session['last_attempt'] = current_time
+                # Login failed — increment IP-based counter with TTL equal to lockout window
+                new_count = login_attempts + 1
+                cache.set(cache_key, new_count, timeout=lockout_duration)
 
                 emit_audit_event(request, "auth.login.failure", detail={
                     "username_attempted": username,
-                    "attempt_count": login_attempts + 1,
+                    "attempt_count": new_count,
+                    "ip": client_ip,
                 })
 
                 return render(request, self.template_name, {

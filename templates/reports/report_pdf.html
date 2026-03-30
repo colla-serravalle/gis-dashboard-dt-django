@@ -241,7 +241,7 @@
             <tr>
             {% endif %}
                 <td>
-                    <img src="{{ photo.base64 }}">
+                    <img src="{{ photo.base64 }}" alt="{{ photo.name }}">
                     <p class="photo-caption">{{ photo.name }}</p>
                 </td>
             {% if forloop.counter|divisibleby:2 or forloop.last %}

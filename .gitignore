@@ -43,3 +43,6 @@ Userscolla.claude-memchroma/
 
 # Pip-audit
 .pip-audit/
+
+# Vulnerabilities scans
+docs/vulnerability/
