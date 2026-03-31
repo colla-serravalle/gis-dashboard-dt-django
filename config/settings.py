@@ -358,11 +358,13 @@ if not DEBUG:
     SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
 
 # Content Security Policy — applied by config.middleware.ContentSecurityPolicyMiddleware
+# 'unsafe-inline' is required for script-src and style-src because the templates
+# use inline scripts and styles. frame-ancestors and connect-src remain strict.
 CSP_POLICY = {
     "default-src": ["'self'"],
-    "script-src": ["'self'"],
-    "style-src": ["'self'", "cdnjs.cloudflare.com"],
-    "font-src": ["'self'", "cdnjs.cloudflare.com"],
+    "script-src": ["'self'", "'unsafe-inline'"],
+    "style-src": ["'self'", "'unsafe-inline'", "cdnjs.cloudflare.com", "fonts.googleapis.com"],
+    "font-src": ["'self'", "cdnjs.cloudflare.com", "fonts.gstatic.com"],
     "img-src": ["'self'", "data:", "https:"],
     "connect-src": ["'self'"],
     "frame-ancestors": ["'none'"],
