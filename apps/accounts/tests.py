@@ -142,3 +142,37 @@ class AuditLogInjectionTest(TestCase):
             self.login_url, {'username': long_name, 'password': 'wrong'}
         )
         self.assertIn(response.status_code, [302, 200])
+
+
+class ClientIpExtractionTest(TestCase):
+    """H-2a: _get_client_ip must not trust X-Forwarded-For from untrusted sources."""
+
+    def _get_ip(self, meta):
+        from apps.accounts.views import LoginView
+        view = LoginView()
+        from django.test import RequestFactory
+        rf = RequestFactory()
+        request = rf.get('/')
+        request.META.update(meta)
+        return view._get_client_ip(request)
+
+    def test_uses_remote_addr_when_no_forwarded_for(self):
+        ip = self._get_ip({'REMOTE_ADDR': '1.2.3.4'})
+        self.assertEqual(ip, '1.2.3.4')
+
+    def test_ignores_forwarded_for_from_untrusted_remote_addr(self):
+        """When REMOTE_ADDR is not in TRUSTED_PROXIES, ignore X-Forwarded-For."""
+        ip = self._get_ip({
+            'REMOTE_ADDR': '5.6.7.8',           # not a trusted proxy
+            'HTTP_X_FORWARDED_FOR': '1.1.1.1',  # attacker-controlled
+        })
+        self.assertEqual(ip, '5.6.7.8')
+
+    def test_uses_forwarded_for_rightmost_from_trusted_proxy(self):
+        """When REMOTE_ADDR is a trusted proxy, take the rightmost XFF IP."""
+        with self.settings(LOGIN_TRUSTED_PROXIES=['127.0.0.1']):
+            ip = self._get_ip({
+                'REMOTE_ADDR': '127.0.0.1',
+                'HTTP_X_FORWARDED_FOR': '10.0.0.1, 192.168.1.1',
+            })
+        self.assertEqual(ip, '192.168.1.1')

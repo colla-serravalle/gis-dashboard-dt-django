@@ -193,7 +193,7 @@ SESSION_COOKIE_AGE = int(os.getenv('SESSION_TIMEOUT', 3600))  # 1 hour default
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_SAVE_EVERY_REQUEST = True  # Update session on every request
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = 'Strict'
+SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = 'Strict'
 
@@ -315,6 +315,13 @@ CACHES = {
 # Rate limiting for login attempts
 MAX_LOGIN_ATTEMPTS = int(os.getenv('MAX_LOGIN_ATTEMPTS', 5))
 LOCKOUT_DURATION = int(os.getenv('LOCKOUT_DURATION', 900))  # 15 minutes
+
+# Trusted reverse proxy IPs for X-Forwarded-For extraction (space-separated in env)
+LOGIN_TRUSTED_PROXIES = [
+    ip.strip()
+    for ip in os.getenv('LOGIN_TRUSTED_PROXIES', '').split()
+    if ip.strip()
+]
 
 # Production security headers — only active when DEBUG=False
 if not DEBUG:
