@@ -126,3 +126,31 @@ class ExceptionSanitizationTest(TestCase):
             response = self.client.get('/api/image/0/1/1/')
         self.assertEqual(response.status_code, 500)
         self.assertNotIn(b'secret arcgis token', response.content)
+
+
+class PaginationValidationTest(TestCase):
+    """M-3: Pagination parameters must be validated before int() conversion."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='pageuser', password='testpassword123',
+            is_superuser=True,
+        )
+        self.client.force_login(self.user, backend='apps.accounts.auth.SuperuserOnlyModelBackend')
+
+    def test_non_numeric_page_returns_400(self):
+        response = self.client.get('/api/data/', {'page': 'abc'})
+        self.assertEqual(response.status_code, 400)
+
+    def test_non_numeric_per_page_returns_400(self):
+        response = self.client.get('/api/data/', {'per_page': 'xyz'})
+        self.assertEqual(response.status_code, 400)
+
+    def test_negative_page_is_clamped_to_1(self):
+        """Negative page should not cause a negative offset — clamp to 1."""
+        with patch('apps.reports.views.api.query_feature_layer', return_value={'features': []}):
+            response = self.client.get('/api/data/', {'page': '-5'})
+        self.assertIn(response.status_code, [200, 400])
+        if response.status_code == 200:
+            body = json.loads(response.content)
+            self.assertGreaterEqual(body.get('page', 1), 1)

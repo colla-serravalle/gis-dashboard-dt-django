@@ -190,8 +190,14 @@ def get_data(request):
     """
     try:
         # Parse pagination params
-        page = int(request.GET.get('page', 1))
-        per_page = min(int(request.GET.get('per_page', 10)), settings.MAX_ITEMS_PER_PAGE)
+        try:
+            page = max(1, int(request.GET.get('page', 1)))
+            per_page = min(
+                max(1, int(request.GET.get('per_page', 10))),
+                settings.MAX_ITEMS_PER_PAGE,
+            )
+        except (ValueError, TypeError):
+            return JsonResponse({'error': 'Parametri di paginazione non validi.'}, status=400)
         offset = (page - 1) * per_page
 
         # Parse sorting params — allowlist to prevent field enumeration
