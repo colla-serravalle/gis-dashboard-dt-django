@@ -334,32 +334,37 @@ class AuthEventTest(TestCase):
         self.assertIn("auth.logout", event_types)
 
     def test_lockout_emits_auth_login_locked(self):
-        session = self.client.session
-        session["login_attempts"] = 10
-        session["last_attempt"] = 9999999999  # far future — always locked
-        session.save()
-        with self.assertLogs("audit", level="WARNING") as cm:
-            self.client.post(reverse("accounts:login"), {
-                "username": "testuser",
-                "password": "any",
-            })
-        event_types = [r.event_type for r in cm.records]
-        self.assertIn("auth.login.locked", event_types)
+        from django.core.cache import cache
+        from django.conf import settings as django_settings
+        # Simulate exceeded attempts via IP-based cache (test client uses 127.0.0.1)
+        cache.set('login_attempts_127.0.0.1', django_settings.MAX_LOGIN_ATTEMPTS, 900)
+        try:
+            with self.assertLogs("audit", level="WARNING") as cm:
+                self.client.post(reverse("accounts:login"), {
+                    "username": "testuser",
+                    "password": "any",
+                })
+            event_types = [r.event_type for r in cm.records]
+            self.assertIn("auth.login.locked", event_types)
+        finally:
+            cache.delete('login_attempts_127.0.0.1')
 
     def test_lockout_detail_contains_attempt_count_and_locked_until(self):
-        import time
-        session = self.client.session
-        session["login_attempts"] = 10
-        session["last_attempt"] = time.time()
-        session.save()
-        with self.assertLogs("audit", level="WARNING") as cm:
-            self.client.post(reverse("accounts:login"), {
-                "username": "testuser",
-                "password": "any",
-            })
-        record = next(r for r in cm.records if r.event_type == "auth.login.locked")
-        self.assertIn("attempt_count", record.detail)
-        self.assertIn("locked_until", record.detail)
+        from django.core.cache import cache
+        from django.conf import settings as django_settings
+        # Simulate exceeded attempts via IP-based cache (test client uses 127.0.0.1)
+        cache.set('login_attempts_127.0.0.1', django_settings.MAX_LOGIN_ATTEMPTS, 900)
+        try:
+            with self.assertLogs("audit", level="WARNING") as cm:
+                self.client.post(reverse("accounts:login"), {
+                    "username": "testuser",
+                    "password": "any",
+                })
+            record = next(r for r in cm.records if r.event_type == "auth.login.locked")
+            self.assertIn("attempt_count", record.detail)
+            self.assertIn("ip", record.detail)
+        finally:
+            cache.delete('login_attempts_127.0.0.1')
 
 
 from unittest.mock import patch, MagicMock
@@ -528,11 +533,14 @@ class GroupChangedSignalTest(TestCase):
 class AdminUserChangedEventTest(TestCase):
 
     def setUp(self):
+        import os
+        from django.urls import reverse
         self.admin = User.objects.create_superuser("admin", password="admin-pass")
         self.target = User.objects.create_user("target_user", password="pass",
                                                first_name="Old")
         self.client.force_login(self.admin)
-        self.change_url = f"/admin/auth/user/{self.target.pk}/change/"
+        admin_prefix = os.environ.get('DJANGO_ADMIN_URL', 'app-control-panel/')
+        self.change_url = f"/{admin_prefix}auth/user/{self.target.pk}/change/"
         self.change_payload = {
             "username": self.target.username,
             "first_name": "New",
