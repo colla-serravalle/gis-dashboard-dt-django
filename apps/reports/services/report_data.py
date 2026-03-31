@@ -1,7 +1,7 @@
 """Service for fetching and processing report data from ArcGIS."""
 
 import math
-import re
+import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from apps.core.services.arcgis import query_feature_layer, get_attachments
@@ -12,22 +12,23 @@ from apps.reports.mappings import (
     process_features,
 )
 
-_GUID_RE = re.compile(
-    r'^[{]?[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}[}]?$'
-)
-
 
 def _validate_report_id(report_id):
     """
-    Validate that report_id matches a GUID/UUID pattern.
+    Validate that report_id is a well-formed UUID/GUID.
+
+    Accepts the three standard Python uuid.UUID input formats:
+      - With dashes:    'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+      - Without dashes: 'a1b2c3d4e5f67890abcdef1234567890'
+      - With braces:    '{a1b2c3d4-e5f6-7890-abcd-ef1234567890}'
 
     Raises:
-        ValueError: if report_id is None, empty, or not a valid GUID.
+        ValueError: if report_id is None, not a string, or not a valid UUID.
     """
-    if not report_id or not isinstance(report_id, str):
-        raise ValueError("Invalid report_id: value is missing or not a string")
-    if not _GUID_RE.match(report_id):
-        raise ValueError("Invalid report_id: does not match GUID format")
+    try:
+        uuid.UUID(str(report_id))
+    except (ValueError, AttributeError):
+        raise ValueError("Invalid report_id: not a valid GUID")
 
 
 def get_report_data(report_id):

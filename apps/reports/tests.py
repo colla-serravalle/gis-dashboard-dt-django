@@ -42,6 +42,12 @@ class ReportIdValidationTest(TestCase):
         with self.assertRaises(ValueError):
             _validate_report_id('../../../etc/passwd')
 
+    def test_non_hex_string_raises_value_error(self):
+        """uuid.UUID rejects strings containing non-hex characters."""
+        from apps.reports.services.report_data import _validate_report_id
+        with self.assertRaises(ValueError):
+            _validate_report_id('gggggggg-gggg-gggg-gggg-gggggggggggg')
+
 
 class ReportDetailViewValidationTest(TestCase):
     """H-4: ReportDetailView returns 400 for invalid report IDs."""
