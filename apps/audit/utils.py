@@ -21,7 +21,7 @@ def emit_audit_event(request, event_type: str, detail: dict | None = None) -> No
     if request is not None:
         user = request.user.username if request.user.is_authenticated else "anonymous"
         x_fwd = request.META.get("HTTP_X_FORWARDED_FOR", "")
-        ip = x_fwd.split(",")[0].strip() if x_fwd else request.META.get("REMOTE_ADDR", "")
+        ip = x_fwd.split(",")[-1].strip() if x_fwd else request.META.get("REMOTE_ADDR", "")
         session_id = getattr(request.session, "session_key", None)
         path = request.path
         method = request.method
