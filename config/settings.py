@@ -5,9 +5,12 @@ Migrated from PHP application.
 """
 
 import os
+import re
 import sys
+import uuid
 from pathlib import Path
 from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
 import ssl
 import truststore
 
@@ -174,6 +177,13 @@ LOGOUT_REDIRECT_URL = '/'
 # =============================================================================
 
 AZURE_TENANT_ID = os.environ.get('AZURE_TENANT_ID')
+if AZURE_TENANT_ID:
+    try:
+        uuid.UUID(AZURE_TENANT_ID)
+    except ValueError:
+        raise ImproperlyConfigured(
+            f"AZURE_TENANT_ID is not a valid UUID: {AZURE_TENANT_ID!r}"
+        )
 
 OIDC_RP_CLIENT_ID = os.environ.get('AZURE_CLIENT_ID')
 OIDC_RP_CLIENT_SECRET = os.environ.get('AZURE_CLIENT_SECRET')
@@ -213,9 +223,15 @@ SERVICE_AUTH_EXEMPT_APPS = [
 
 # URL prefixes that bypass service access checks
 _ADMIN_URL = os.environ.get('DJANGO_ADMIN_URL', 'app-control-panel/')
+if not re.fullmatch(r'[a-zA-Z0-9_\-/]+/?', _ADMIN_URL):
+    raise ImproperlyConfigured(
+        f"DJANGO_ADMIN_URL contains invalid characters: {_ADMIN_URL!r}. "
+        "Only alphanumeric characters, hyphens, underscores, and slashes are allowed."
+    )
+_ADMIN_URL_PREFIX = f"/{_ADMIN_URL.strip('/')}/"
 SERVICE_AUTH_EXEMPT_URLS = [
     "/oidc/",
-    f"/{_ADMIN_URL.strip('/')}/" if not _ADMIN_URL.startswith('/') else _ADMIN_URL,
+    _ADMIN_URL_PREFIX,
     "/static/",
     "/health/",
     "/auth/",

@@ -239,11 +239,12 @@ class EmitAuditEventTest(SimpleTestCase):
             emit_audit_event(request, "auth.logout", detail={})
         self.assertEqual(cm.records[0].ip, "192.168.1.5")
 
-    def test_ip_from_x_forwarded_for_first_value(self):
+    def test_ip_from_x_forwarded_for_rightmost_value(self):
+        """Audit logging uses the rightmost XFF entry (nearest trusted proxy) to prevent spoofing."""
         request = _make_request(username="u", forwarded_for="203.0.113.1, 10.0.0.1")
         with self.assertLogs("audit", level="INFO") as cm:
             emit_audit_event(request, "auth.logout", detail={})
-        self.assertEqual(cm.records[0].ip, "203.0.113.1")
+        self.assertEqual(cm.records[0].ip, "10.0.0.1")
 
     def test_path_is_request_path(self):
         request = _make_request(username="u", path="/reports/list/")

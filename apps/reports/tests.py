@@ -156,6 +156,34 @@ class PaginationValidationTest(TestCase):
             self.assertGreaterEqual(body.get('page', 1), 1)
 
 
+class ImageProxyValidationTest(TestCase):
+    """M-1: Image proxy must reject negative integer parameters.
+
+    Django's <int:> URL converter rejects negative values at routing level (404).
+    The view also has an explicit >= 0 check as defense-in-depth.
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='imguser', password='testpassword123',
+            is_superuser=True,
+        )
+        self.client.force_login(self.user, backend='apps.accounts.auth.SuperuserOnlyModelBackend')
+
+    def test_negative_layer_rejected_by_url_router(self):
+        """Django's <int:> converter rejects negative values before reaching the view."""
+        response = self.client.get('/api/image/-1/1/1/')
+        self.assertEqual(response.status_code, 404)
+
+    def test_negative_object_id_rejected_by_url_router(self):
+        response = self.client.get('/api/image/0/-1/1/')
+        self.assertEqual(response.status_code, 404)
+
+    def test_negative_attachment_id_rejected_by_url_router(self):
+        response = self.client.get('/api/image/0/1/-1/')
+        self.assertEqual(response.status_code, 404)
+
+
 class FilterAllowlistTest(TestCase):
     """M-2: Filter regex must accept Italian accented characters."""
 

@@ -369,6 +369,8 @@ def image_proxy(request, layer, object_id, attachment_id):
         layer = int(layer)
         object_id = int(object_id)
         attachment_id = int(attachment_id)
+        if layer < 0 or object_id < 0 or attachment_id < 0:
+            return HttpResponse("Parametri non validi.", status=400)
 
         service = get_arcgis_service()
         content, content_type = service.get_attachment_content(layer, object_id, attachment_id)
