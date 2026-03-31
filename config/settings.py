@@ -300,12 +300,30 @@ MAX_ITEMS_PER_PAGE = int(os.getenv('MAX_ITEMS_PER_PAGE', 100))
 # Cache Configuration (for ArcGIS token caching)
 # =============================================================================
 
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'unique-snowflake',
+_CACHE_BACKEND = os.getenv('CACHE_BACKEND', 'locmem')
+
+if _CACHE_BACKEND == 'redis':
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/1'),
+        }
     }
-}
+elif _CACHE_BACKEND == 'file':
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+            'LOCATION': os.getenv('FILE_CACHE_DIR', '/tmp/django_cache'),
+        }
+    }
+else:
+    # Default: LocMemCache — fine for development, NOT suitable for multi-instance production
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-snowflake',
+        }
+    }
 
 
 # =============================================================================
