@@ -154,3 +154,23 @@ class PaginationValidationTest(TestCase):
         if response.status_code == 200:
             body = json.loads(response.content)
             self.assertGreaterEqual(body.get('page', 1), 1)
+
+
+class FilterAllowlistTest(TestCase):
+    """M-2: Filter regex must accept Italian accented characters."""
+
+    def test_italian_accented_name_is_valid(self):
+        from apps.reports.views.api import build_where_clause
+        # Should not raise ValueError
+        where = build_where_clause({'nome_operatore': ['Società Costruzioni']})
+        self.assertIn('Societ', where)
+
+    def test_accented_tratta_is_valid(self):
+        from apps.reports.views.api import build_where_clause
+        where = build_where_clause({'tratta': ['Nò-Milano']})
+        self.assertIn('Nò-Milano', where)
+
+    def test_sql_metacharacters_still_rejected(self):
+        from apps.reports.views.api import build_where_clause
+        with self.assertRaises(ValueError):
+            build_where_clause({'nome_operatore': ["admin'; DROP TABLE"]})

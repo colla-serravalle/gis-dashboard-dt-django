@@ -37,7 +37,7 @@ def normalize_filter(value):
     return []
 
 
-_FILTER_VALUE_RE = re.compile(r'^[a-zA-Z0-9_\-\. ]+$')
+_FILTER_VALUE_RE = re.compile(r'^[\w\-\. ]+$', re.UNICODE)
 
 
 def build_where_clause(filters):
