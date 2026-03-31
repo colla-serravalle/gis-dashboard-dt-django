@@ -77,6 +77,7 @@ MIDDLEWARE = [
     'apps.authorization.middleware.ServiceAccessMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'config.middleware.ContentSecurityPolicyMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -192,6 +193,10 @@ OIDC_RENEW_ID_TOKEN_EXPIRY_SECONDS = 900
 SESSION_COOKIE_AGE = int(os.getenv('SESSION_TIMEOUT', 3600))  # 1 hour default
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_SAVE_EVERY_REQUEST = True  # Update session on every request
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Strict'
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = 'Strict'
 
 
 # =============================================================================
@@ -296,12 +301,30 @@ MAX_ITEMS_PER_PAGE = int(os.getenv('MAX_ITEMS_PER_PAGE', 100))
 # Cache Configuration (for ArcGIS token caching)
 # =============================================================================
 
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'unique-snowflake',
+_CACHE_BACKEND = os.getenv('CACHE_BACKEND', 'locmem')
+
+if _CACHE_BACKEND == 'redis':
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/1'),
+        }
     }
-}
+elif _CACHE_BACKEND == 'file':
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+            'LOCATION': os.getenv('FILE_CACHE_DIR', '/tmp/django_cache'),
+        }
+    }
+else:
+    # Default: LocMemCache — fine for development, NOT suitable for multi-instance production
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-snowflake',
+        }
+    }
 
 
 # =============================================================================
@@ -311,6 +334,13 @@ CACHES = {
 # Rate limiting for login attempts
 MAX_LOGIN_ATTEMPTS = int(os.getenv('MAX_LOGIN_ATTEMPTS', 5))
 LOCKOUT_DURATION = int(os.getenv('LOCKOUT_DURATION', 900))  # 15 minutes
+
+# Trusted reverse proxy IPs for X-Forwarded-For extraction (space-separated in env)
+LOGIN_TRUSTED_PROXIES = [
+    ip.strip()
+    for ip in os.getenv('LOGIN_TRUSTED_PROXIES', '').split()
+    if ip.strip()
+]
 
 # Production security headers — only active when DEBUG=False
 if not DEBUG:
@@ -326,6 +356,17 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
     SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
+
+# Content Security Policy — applied by config.middleware.ContentSecurityPolicyMiddleware
+CSP_POLICY = {
+    "default-src": ["'self'"],
+    "script-src": ["'self'"],
+    "style-src": ["'self'", "cdnjs.cloudflare.com"],
+    "font-src": ["'self'", "cdnjs.cloudflare.com"],
+    "img-src": ["'self'", "data:", "https:"],
+    "connect-src": ["'self'"],
+    "frame-ancestors": ["'none'"],
+}
 
 # =============================================================================
 # Logging Configuration

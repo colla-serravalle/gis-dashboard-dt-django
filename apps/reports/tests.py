@@ -42,6 +42,12 @@ class ReportIdValidationTest(TestCase):
         with self.assertRaises(ValueError):
             _validate_report_id('../../../etc/passwd')
 
+    def test_non_hex_string_raises_value_error(self):
+        """uuid.UUID rejects strings containing non-hex characters."""
+        from apps.reports.services.report_data import _validate_report_id
+        with self.assertRaises(ValueError):
+            _validate_report_id('gggggggg-gggg-gggg-gggg-gggggggggggg')
+
 
 class ReportDetailViewValidationTest(TestCase):
     """H-4: ReportDetailView returns 400 for invalid report IDs."""
@@ -120,3 +126,51 @@ class ExceptionSanitizationTest(TestCase):
             response = self.client.get('/api/image/0/1/1/')
         self.assertEqual(response.status_code, 500)
         self.assertNotIn(b'secret arcgis token', response.content)
+
+
+class PaginationValidationTest(TestCase):
+    """M-3: Pagination parameters must be validated before int() conversion."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='pageuser', password='testpassword123',
+            is_superuser=True,
+        )
+        self.client.force_login(self.user, backend='apps.accounts.auth.SuperuserOnlyModelBackend')
+
+    def test_non_numeric_page_returns_400(self):
+        response = self.client.get('/api/data/', {'page': 'abc'})
+        self.assertEqual(response.status_code, 400)
+
+    def test_non_numeric_per_page_returns_400(self):
+        response = self.client.get('/api/data/', {'per_page': 'xyz'})
+        self.assertEqual(response.status_code, 400)
+
+    def test_negative_page_is_clamped_to_1(self):
+        """Negative page should not cause a negative offset — clamp to 1."""
+        with patch('apps.reports.views.api.query_feature_layer', return_value={'features': []}):
+            response = self.client.get('/api/data/', {'page': '-5'})
+        self.assertIn(response.status_code, [200, 400])
+        if response.status_code == 200:
+            body = json.loads(response.content)
+            self.assertGreaterEqual(body.get('page', 1), 1)
+
+
+class FilterAllowlistTest(TestCase):
+    """M-2: Filter regex must accept Italian accented characters."""
+
+    def test_italian_accented_name_is_valid(self):
+        from apps.reports.views.api import build_where_clause
+        # Should not raise ValueError
+        where = build_where_clause({'nome_operatore': ['Società Costruzioni']})
+        self.assertIn('Societ', where)
+
+    def test_accented_tratta_is_valid(self):
+        from apps.reports.views.api import build_where_clause
+        where = build_where_clause({'tratta': ['Nò-Milano']})
+        self.assertIn('Nò-Milano', where)
+
+    def test_sql_metacharacters_still_rejected(self):
+        from apps.reports.views.api import build_where_clause
+        with self.assertRaises(ValueError):
+            build_where_clause({'nome_operatore': ["admin'; DROP TABLE"]})

@@ -71,8 +71,10 @@ class LoginView(View):
         login_attempts = cache.get(cache_key, 0)
 
         if login_attempts >= max_attempts:
+            raw_username = request.POST.get("username", "")
+            safe_username = raw_username.replace('\n', ' ').replace('\r', ' ')[:150]
             emit_audit_event(request, "auth.login.locked", detail={
-                "username_attempted": request.POST.get("username", ""),
+                "username_attempted": safe_username,
                 "attempt_count": login_attempts,
                 "ip": client_ip,
             })
@@ -122,11 +124,18 @@ class LoginView(View):
         })
 
     def _get_client_ip(self, request):
-        """Get client IP address from request."""
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-        if x_forwarded_for:
-            return x_forwarded_for.split(',')[0].strip()
-        return request.META.get('REMOTE_ADDR')
+        """Get client IP address from request.
+
+        Only trusts X-Forwarded-For when REMOTE_ADDR is in LOGIN_TRUSTED_PROXIES.
+        Takes the rightmost XFF entry to avoid attacker-prepended spoofed IPs.
+        """
+        remote_addr = request.META.get('REMOTE_ADDR', '')
+        trusted_proxies = getattr(settings, 'LOGIN_TRUSTED_PROXIES', [])
+        if remote_addr in trusted_proxies:
+            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR', '')
+            if x_forwarded_for:
+                return x_forwarded_for.split(',')[-1].strip()
+        return remote_addr
 
 
 @require_POST
