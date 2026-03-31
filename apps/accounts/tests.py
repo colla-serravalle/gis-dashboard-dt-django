@@ -85,14 +85,15 @@ class CookieSecurityFlagsTest(TestCase):
         self.assertIsNotNone(session_cookie, "sessionid cookie not set")
         self.assertTrue(session_cookie['httponly'], "sessionid must be HttpOnly")
 
-    def test_session_cookie_has_samesite_strict(self):
+    def test_session_cookie_has_samesite_lax(self):
+        """Session cookie uses Lax (not Strict) to allow OIDC redirect callbacks from Entra."""
         self.client.post(
             self.login_url,
             {'username': 'cookieuser', 'password': 'testpassword123'},
         )
         session_cookie = self.client.cookies.get('sessionid')
         self.assertIsNotNone(session_cookie)
-        self.assertEqual(session_cookie['samesite'], 'Strict')
+        self.assertEqual(session_cookie['samesite'], 'Lax')
 
     def test_csrf_cookie_is_httponly(self):
         self.client.get(self.login_url)
