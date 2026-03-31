@@ -77,6 +77,7 @@ MIDDLEWARE = [
     'apps.authorization.middleware.ServiceAccessMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'config.middleware.ContentSecurityPolicyMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -355,6 +356,17 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
     SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
+
+# Content Security Policy — applied by config.middleware.ContentSecurityPolicyMiddleware
+CSP_POLICY = {
+    "default-src": ["'self'"],
+    "script-src": ["'self'"],
+    "style-src": ["'self'", "cdnjs.cloudflare.com"],
+    "font-src": ["'self'", "cdnjs.cloudflare.com"],
+    "img-src": ["'self'", "data:", "https:"],
+    "connect-src": ["'self'"],
+    "frame-ancestors": ["'none'"],
+}
 
 # =============================================================================
 # Logging Configuration
