@@ -84,7 +84,7 @@
 
         <p class="admin-only-label">Accesso riservato agli amministratori</p>
 
-        <form action="{% url 'accounts:login' %}{% if request.GET.next %}?next={{ request.GET.next }}{% endif %}" method="post" class="form login-form">
+        <form action="{% url 'accounts:login' %}{% if next_url %}?next={{ next_url }}{% endif %}" method="post" class="form login-form">
             {% csrf_token %}
 
             <label class="form-label" for="username">Username</label>

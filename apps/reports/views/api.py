@@ -375,10 +375,17 @@ def image_proxy(request, layer, object_id, attachment_id):
         service = get_arcgis_service()
         content, content_type = service.get_attachment_content(layer, object_id, attachment_id)
 
-        if content is not None:
-            return HttpResponse(content, content_type=content_type)
-        else:
+        if content is None:
             return HttpResponse("Errore nel recupero dell'allegato.", status=500)
+
+        allowed_types = {'image/jpeg', 'image/png', 'image/gif', 'image/webp'}
+        if content_type not in allowed_types:
+            return HttpResponse("Tipo di contenuto non consentito.", status=415)
+
+        response = HttpResponse(content, content_type=content_type)
+        response['X-Content-Type-Options'] = 'nosniff'
+        response['Content-Disposition'] = 'inline'
+        return response
 
     except ValueError:
         return HttpResponse("Parametri non validi.", status=400)
