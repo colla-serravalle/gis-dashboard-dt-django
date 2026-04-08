@@ -41,4 +41,10 @@ document.addEventListener('DOMContentLoaded', function () {
             toggleSubMenu(this)
         })
     })
+    document.querySelectorAll('[data-history-back]').forEach(function (el) {
+        el.addEventListener('click', function (e) {
+            e.preventDefault()
+            history.back()
+        })
+    })
 })
