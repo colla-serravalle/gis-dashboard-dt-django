@@ -4,11 +4,11 @@
 {% block title %}Dettaglio Report #{{ object_id }} - GIS Dashboard{% endblock %}
 
 {% block extra_head %}
-<script type="text/javascript" src="{% static 'js/pdf-download.js' %}" defer></script>
+<script type="text/javascript" src="{% static 'js/pdf-download.js' %}" nonce="{{ csp_nonce }}" defer></script>
 {% endblock %}
 
 {% block content %}
-<a href="javascript:history.back()" class="standard-link text-link"><i class="fa-solid fa-circle-chevron-left"></i>Torna all'elenco</a>
+<a href="#" data-history-back class="standard-link text-link"><i class="fa-solid fa-circle-chevron-left"></i>Torna all'elenco</a>
 
 {% if error %}
 <div class="text-chunk">
