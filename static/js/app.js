@@ -31,3 +31,14 @@ function closeAllSubMenus(){
         ul.previousElementSibling.classList.remove('rotate')
     })
 }
+
+document.addEventListener('DOMContentLoaded', function () {
+    if (toggleButton) {
+        toggleButton.addEventListener('click', toggleSidebar)
+    }
+    sidebar.querySelectorAll('.dropdown-link').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            toggleSubMenu(this)
+        })
+    })
+})

@@ -318,6 +318,8 @@ uv run python manage.py seed_services
 
 # Pip-audit for security vulnerabilities (with lockfile and pip-audit venv activatted)
 pip-audit --locked .pip-audit/ -f columns --desc on -o .pip-audit/report-x.csv
+# Recreate pylock.toml before run pip-audit if dependencies have changed: (with pip-audit venv activatted)
+uv export --format pylock.toml --output-file .pip-audit/pylock.toml
 
 # Bandit security linter (with bandit venv activatted)
 bandit -c .bandit/bandit.yaml -f csv -o .bandit/report-x.csv -r .

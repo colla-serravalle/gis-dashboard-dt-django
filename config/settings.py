@@ -96,6 +96,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'apps.authorization.context_processors.accessible_services',
+                'config.context_processors.csp_nonce',
             ],
         },
     },
@@ -374,11 +375,11 @@ if not DEBUG:
     SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
 
 # Content Security Policy — applied by config.middleware.ContentSecurityPolicyMiddleware
-# 'unsafe-inline' is required for script-src and style-src because the templates
-# use inline scripts and styles. frame-ancestors and connect-src remain strict.
+# "'nonce'" is a sentinel replaced per-request with "'nonce-<random>'" by the middleware.
+# All <script> tags must carry nonce="{{ csp_nonce }}" from the template context.
 CSP_POLICY = {
     "default-src": ["'self'"],
-    "script-src": ["'self'", "'unsafe-inline'"],
+    "script-src": ["'self'", "'nonce'"],
     "style-src": ["'self'", "'unsafe-inline'", "cdnjs.cloudflare.com", "fonts.googleapis.com"],
     "font-src": ["'self'", "cdnjs.cloudflare.com", "fonts.gstatic.com"],
     "img-src": ["'self'", "data:", "https:"],

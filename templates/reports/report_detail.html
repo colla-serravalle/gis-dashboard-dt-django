@@ -4,7 +4,7 @@
 {% block title %}Dettaglio Report #{{ object_id }} - GIS Dashboard{% endblock %}
 
 {% block extra_head %}
-<script type="text/javascript" src="{% static 'js/pdf-download.js' %}" defer></script>
+<script type="text/javascript" src="{% static 'js/pdf-download.js' %}" nonce="{{ csp_nonce }}" defer></script>
 {% endblock %}
 
 {% block content %}

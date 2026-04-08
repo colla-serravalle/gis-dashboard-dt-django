@@ -1,25 +1,40 @@
 """Project-level Django middleware."""
 
+import secrets
 from django.conf import settings
 
 
-class ContentSecurityPolicyMiddleware:
-    """Attach a Content-Security-Policy header to every response.
+_NONCE_SENTINEL = "'nonce'"
 
-    The policy is assembled from the CSP_POLICY dict in settings.
-    Each key is a CSP directive name; the value is a list of source strings.
+
+class ContentSecurityPolicyMiddleware:
+    """Attach a Content-Security-Policy header with a per-request nonce.
+
+    The CSP_POLICY dict may include the sentinel string "'nonce'" in any
+    directive's source list. It is replaced with "'nonce-<random>'" for
+    every request, and the nonce value is stored on request.csp_nonce so
+    templates can emit it as the nonce= attribute on <script> tags.
     """
 
     def __init__(self, get_response):
         self.get_response = get_response
-        policy = getattr(settings, 'CSP_POLICY', {})
-        self._header_value = '; '.join(
-            f"{directive} {' '.join(sources)}"
-            for directive, sources in policy.items()
-        )
+        self._policy = getattr(settings, 'CSP_POLICY', {})
+
+    def _build_header(self, nonce):
+        parts = []
+        for directive, sources in self._policy.items():
+            resolved = [
+                f"'nonce-{nonce}'" if s == _NONCE_SENTINEL else s
+                for s in sources
+            ]
+            parts.append(f"{directive} {' '.join(resolved)}")
+        return '; '.join(parts)
 
     def __call__(self, request):
+        nonce = secrets.token_urlsafe(16)
+        request.csp_nonce = nonce
         response = self.get_response(request)
-        if self._header_value:
-            response['Content-Security-Policy'] = self._header_value
+        header = self._build_header(nonce)
+        if header:
+            response['Content-Security-Policy'] = header
         return response
