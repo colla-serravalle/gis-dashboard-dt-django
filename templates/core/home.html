@@ -5,8 +5,8 @@
 {% block content %}
 <div class="container welcome-ctnr">
     <div>
-        <h2>Buongiorno {{ user.first_name|default:user.username }}!</h2>
-        <p>Ti diamo il benvenuto nell'area di gestione della reportistica di Milano Serravalle - Milano Tangenziali S.p.A.</p>
+        <h2>{{ ui_strings.home_greeting }} {{ user.first_name|default:user.username }}!</h2>
+        <p>{{ ui_strings.home_welcome }}</p>
     </div>
     <div>
         <i class="fa-solid fa-helmet-safety fa-4x"></i>
@@ -15,8 +15,8 @@
 
 {% if displayable_services %}
 <div class="text-chunk">
-    <h1>Servizi</h1>
-    <p>Elenco dei servizi disponibili.</p>
+    <h1>{{ ui_strings.home_services_title }}</h1>
+    <p>{{ ui_strings.home_services_subtitle }}</p>
 </div>
 
 <!-- LAYOUT RESPONSIVE A 3 COLONNE -->
@@ -28,7 +28,7 @@
         </div>
         <h2>{{ service.name }}</h2>
         <p>{{ service.description }}</p>
-        <a href="{{ service.get_list_url }}" class="standard-link filled-link">Vai alla pagina</a>
+        <a href="{{ service.get_list_url }}" class="standard-link filled-link">{{ ui_strings.home_goto_btn }}</a>
     </div>
     {% endfor %}
 </div>
