@@ -378,7 +378,10 @@ h2, p{
 /*FINE STILE CARD*/
 
 .icon-background{
-    display: inline-block;
+    display: inline-flex;
+    width:fit-content;
+    justify-content: center;
+    aspect-ratio: 1;
     padding: 10px;
     border-radius: 10px;
     background-color: var(--primary-clr-container);
