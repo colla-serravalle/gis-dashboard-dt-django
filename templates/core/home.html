@@ -5,7 +5,7 @@
 {% block content %}
 <div class="container welcome-ctnr">
     <div>
-        <h2>Buongiorno !</h2>
+        <h2>Buongiorno {{ user.first_name|default:user.username }}!</h2>
         <p>Ti diamo il benvenuto nell'area di gestione della reportistica di Milano Serravalle - Milano Tangenziali S.p.A.</p>
     </div>
     <div>
