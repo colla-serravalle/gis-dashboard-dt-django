@@ -5,8 +5,10 @@ from config.strings import UI_STRINGS
 class UIStringsTest(TestCase):
     """Verifica che UI_STRINGS contenga le chiavi attese."""
 
-    def test_is_dict(self):
-        self.assertIsInstance(UI_STRINGS, dict)
+    def test_all_values_are_strings(self):
+        for key, value in UI_STRINGS.items():
+            with self.subTest(key=key):
+                self.assertIsInstance(value, str, f"UI_STRINGS['{key}'] non è una stringa")
 
     def test_required_keys_present(self):
         required_keys = [
@@ -43,4 +45,4 @@ class UIStringsTest(TestCase):
     def test_no_empty_values(self):
         for key, value in UI_STRINGS.items():
             with self.subTest(key=key):
-                self.assertTrue(value, f"UI_STRINGS['{key}'] è vuoto")
+                self.assertTrue(value.strip(), f"UI_STRINGS['{key}'] è vuoto o solo spazi")
