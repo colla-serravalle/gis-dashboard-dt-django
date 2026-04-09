@@ -150,7 +150,7 @@ body{
 }
 
 /*Stile logout button*/
-.logout-link{
+.logout-btn{
     background-color: #ffdada;
     border-radius: 2em;
 
@@ -163,7 +163,7 @@ body{
     }
 }
 
-#sidebar .logout-link a:hover{
+#sidebar .logout-btn:hover{
     background-color: #ec4040;
     color: var(--base-clr);
 
