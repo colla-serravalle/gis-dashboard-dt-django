@@ -313,7 +313,7 @@ h2, p{
     margin-bottom: 20px;
 }
 
-.columns-2{static/css/style.css
+.columns-2{
     grid-template-columns: repeat(2, 1fr);  /* 3 colonne per riga */
 }
 
