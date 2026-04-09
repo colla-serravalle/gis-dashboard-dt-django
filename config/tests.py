@@ -1,5 +1,6 @@
-from django.test import TestCase
+from django.test import TestCase, RequestFactory
 from config.strings import UI_STRINGS
+from config.context_processors import ui_strings as ui_strings_processor
 
 
 class UIStringsTest(TestCase):
@@ -46,3 +47,35 @@ class UIStringsTest(TestCase):
         for key, value in UI_STRINGS.items():
             with self.subTest(key=key):
                 self.assertTrue(value.strip(), f"UI_STRINGS['{key}'] è vuoto o solo spazi")
+
+
+class UIStringsContextProcessorTest(TestCase):
+    """Verifica che il context processor inietti ui_strings."""
+
+    def setUp(self):
+        self.factory = RequestFactory()
+
+    def test_returns_ui_strings_dict(self):
+        request = self.factory.get('/')
+        result = ui_strings_processor(request)
+        self.assertIn("ui_strings", result)
+        self.assertIs(result["ui_strings"], UI_STRINGS)
+
+
+class UIStringsInTemplateContextTest(TestCase):
+    """Verifica che ui_strings sia disponibile nel context dei template."""
+
+    def setUp(self):
+        self.factory = RequestFactory()
+
+    def test_ui_strings_processor_returns_dict(self):
+        """Test that the ui_strings processor returns the correct dict structure."""
+        request = self.factory.get('/')
+        result = ui_strings_processor(request)
+        self.assertIsInstance(result, dict)
+        self.assertIn("ui_strings", result)
+
+    def test_ui_strings_contains_greeting_key(self):
+        """Test that ui_strings contains the 'home_greeting' key needed for templates."""
+        self.assertIn("home_greeting", UI_STRINGS)
+        self.assertEqual(UI_STRINGS["home_greeting"], "Buongiorno")
