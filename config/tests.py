@@ -1,4 +1,4 @@
-from django.test import TestCase, RequestFactory
+from django.test import TestCase, RequestFactory, override_settings
 from config.strings import UI_STRINGS
 from config.context_processors import ui_strings as ui_strings_processor
 
@@ -62,20 +62,42 @@ class UIStringsContextProcessorTest(TestCase):
         self.assertIs(result["ui_strings"], UI_STRINGS)
 
 
+@override_settings(
+    MIDDLEWARE=[
+        'django.middleware.security.SecurityMiddleware',
+        'django.contrib.sessions.middleware.SessionMiddleware',
+        'django.middleware.common.CommonMiddleware',
+        'django.middleware.csrf.CsrfViewMiddleware',
+        'django.contrib.auth.middleware.AuthenticationMiddleware',
+        # Disable OIDC SessionRefresh for this test
+        'apps.authorization.middleware.ServiceAccessMiddleware',
+        'django.contrib.messages.middleware.MessageMiddleware',
+        'django.middleware.clickjacking.XFrameOptionsMiddleware',
+        'config.middleware.ContentSecurityPolicyMiddleware',
+    ]
+)
 class UIStringsInTemplateContextTest(TestCase):
-    """Verifica che ui_strings sia disponibile nel context dei template."""
+    """Verifica che ui_strings sia disponibile nel context dei template via HTTP."""
 
     def setUp(self):
-        self.factory = RequestFactory()
+        from django.contrib.auth.models import User, Group
+        from apps.authorization.models import Service
 
-    def test_ui_strings_processor_returns_dict(self):
-        """Test that the ui_strings processor returns the correct dict structure."""
-        request = self.factory.get('/')
-        result = ui_strings_processor(request)
-        self.assertIsInstance(result, dict)
-        self.assertIn("ui_strings", result)
+        self.user = User.objects.create_user("testuser_ctx", password="pass")
+        group = Group.objects.create(name="core_group_ctx")
+        self.user.groups.add(group)
+        core_svc = Service.objects.create(
+            name="Dashboard", app_label="core", is_active=True, display_order=0
+        )
+        core_svc.allowed_groups.set([group])
+        self.client.force_login(self.user)
 
-    def test_ui_strings_contains_greeting_key(self):
-        """Test that ui_strings contains the 'home_greeting' key needed for templates."""
-        self.assertIn("home_greeting", UI_STRINGS)
-        self.assertEqual(UI_STRINGS["home_greeting"], "Buongiorno")
+    def test_ui_strings_in_home_context(self):
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("ui_strings", response.context)
+
+    def test_home_renders_greeting_from_ui_strings(self):
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Buongiorno")
