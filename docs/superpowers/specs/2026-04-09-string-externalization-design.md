@@ -8,13 +8,13 @@
 
 ## Obiettivo
 
-Centralizzare tutte le stringhe UI visibili nei template HTML in un unico file Python alla root del progetto. L'app rimane monolingua (italiano); la motivazione è la manutenibilità: aggiornare un testo richiede una sola modifica in un unico posto.
+Centralizzare tutte le stringhe UI visibili nei template HTML in un unico file Python. L'app rimane monolingua (italiano); la motivazione è la manutenibilità: aggiornare un testo richiede una sola modifica in un unico posto.
 
 ---
 
 ## Approccio scelto
 
-**Flat dict `UI_STRINGS` in `strings.py`** (root del progetto), iniettato globalmente nei template tramite un context processor Django. Le stringhe condivise tra più template vengono definite una volta sola.
+**Flat dict `UI_STRINGS` in `config/strings.py`**, iniettato globalmente nei template tramite un context processor Django. Le stringhe condivise tra più template vengono definite una volta sola.
 
 Approcci scartati:
 - *Costanti individuali*: impraticabili per l'iniezione nei template (richiederebbero import espliciti di ogni costante nel context processor).
@@ -28,20 +28,20 @@ Approcci scartati:
 ### File nuovo
 
 ```
-strings.py   ← root del progetto, accanto a manage.py
+config/strings.py   ← accanto a settings.py, context_processors.py
 ```
 
 ### File modificati
 
 ```
-apps/authorization/context_processors.py   ← aggiunta funzione ui_strings()
-gis_dashboard/settings.py                  ← registrazione del context processor
-templates/**/*.html                        ← sostituzione stringhe hardcoded
+config/context_processors.py   ← aggiunta funzione ui_strings()
+config/settings.py              ← registrazione del context processor
+templates/**/*.html             ← sostituzione stringhe hardcoded
 ```
 
 ---
 
-## `strings.py`
+## `config/strings.py`
 
 Dizionario flat con commenti di sezione. Naming convention: `<sezione>_<elemento>` per le stringhe specifiche; nomi semplici per le stringhe comuni.
 
@@ -115,26 +115,26 @@ UI_STRINGS = {
 
 ## Context processor
 
-Aggiunta in `apps/authorization/context_processors.py`:
+Aggiunta in `config/context_processors.py` (file esistente, già contiene `csp_nonce`):
 
 ```python
-from strings import UI_STRINGS
+from config.strings import UI_STRINGS
 
 def ui_strings(request):
     return {"ui_strings": UI_STRINGS}
 ```
 
-Registrazione in `settings.py` (in `TEMPLATES[0]['OPTIONS']['context_processors']`):
+Registrazione in `config/settings.py` (in `TEMPLATES[0]['OPTIONS']['context_processors']`):
 
 ```python
-"authorization.context_processors.ui_strings",
+"config.context_processors.ui_strings",
 ```
 
 ---
 
 ## Uso nei template
 
-La variabile `ui_strings` è disponibile in tutti i template automaticamente.
+La variabile `ui_strings` è disponibile in tutti i template automaticamente (tramite `RequestContext`).
 
 **Stringa semplice:**
 ```html
@@ -173,6 +173,7 @@ La parte fissa va in `ui_strings`, quella dinamica rimane variabile template —
 
 ### Fuori scope
 
+- `templates/reports/report_pdf.html` — renderizzato via `render_to_string` con dict plain (non `RequestContext`); i context processor non vengono eseguiti. Le stringhe del PDF rimangono hardcoded.
 - Stringhe nei file `.py` (log, messaggi di errore interni, seed)
 - Field labels ArcGIS in `apps/reports/mappings.py` (già centralizzate)
 - Stringhe tecniche nei template (attributi `data-*`, classi CSS, nomi URL)
@@ -182,6 +183,5 @@ La parte fissa va in `ui_strings`, quella dinamica rimane variabile template —
 
 ## Note implementative
 
-- Il file `strings.py` va importato con `from strings import UI_STRINGS` — funziona dalla root del progetto dove Django esegue i comandi.
-- Non modificare le chiavi esistenti senza cercare tutti i template che le usano (`grep -r "ui_strings.<key>" templates/`).
-- Per aggiungere stringhe di una nuova app: aggiungere una sezione con commento in `strings.py`. Non serve toccare il context processor.
+- Non modificare le chiavi esistenti senza cercare tutti i template che le usano: `grep -r "ui_strings\." templates/`
+- Per aggiungere stringhe di una nuova app: aggiungere una sezione con commento in `config/strings.py`. Non serve toccare il context processor.
