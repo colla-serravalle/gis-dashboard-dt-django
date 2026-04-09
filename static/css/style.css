@@ -150,7 +150,7 @@ body{
 }
 
 /*Stile logout button*/
-.logout-link{
+.logout-btn{
     background-color: #ffdada;
     border-radius: 2em;
 
@@ -163,7 +163,7 @@ body{
     }
 }
 
-#sidebar .logout-link a:hover{
+#sidebar .logout-btn:hover{
     background-color: #ec4040;
     color: var(--base-clr);
 
@@ -313,7 +313,7 @@ h2, p{
     margin-bottom: 20px;
 }
 
-.columns-2{static/css/style.css
+.columns-2{
     grid-template-columns: repeat(2, 1fr);  /* 3 colonne per riga */
 }
 
@@ -336,6 +336,7 @@ h2, p{
 
 .grid-column .standard-link {
     margin-top: auto;
+    width: fit-content;
 }
 
 /* FINE STILE TEMPLATE GRIGLIA*/
@@ -378,7 +379,10 @@ h2, p{
 /*FINE STILE CARD*/
 
 .icon-background{
-    display: inline-block;
+    display: inline-flex;
+    width:fit-content;
+    justify-content: center;
+    aspect-ratio: 1;
     padding: 10px;
     border-radius: 10px;
     background-color: var(--primary-clr-container);
@@ -1116,7 +1120,6 @@ a.link-testo:hover::before{
     display: block;
     font-weight: 500;
     color: var(--text-clr);
-    margin-bottom: 0.5rem;
     font-size: 0.9rem;
 }
 
@@ -1132,7 +1135,7 @@ a.link-testo:hover::before{
     justify-content: space-between;
     padding: 0.75rem;
     border: 1px solid var(--border-clr);
-    border-radius: 4px;
+    border-radius: 12px;
     background: white;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -1170,7 +1173,7 @@ a.link-testo:hover::before{
     right: 0;
     background: white;
     border: 1px solid var(--border-clr);
-    border-radius: 4px;
+    border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     z-index: 1000;
     /*max-height: 300px;*/
@@ -1222,7 +1225,7 @@ a.link-testo:hover::before{
     flex: 1;
     padding: 0.4rem 0.6rem;
     border: none;
-    border-radius: 3px;
+    border-radius: 8px;
     font-size: 0.8rem;
     cursor: pointer;
     background: white;
@@ -1249,6 +1252,7 @@ a.link-testo:hover::before{
     padding: 0.5rem 0.75rem;
     cursor: pointer;
     transition: background-color 0.2s ease;
+    margin-bottom: 0.1rem;
 }
 
 .filters-wrapper .dropdown-option:hover {
@@ -1332,7 +1336,7 @@ a.link-testo:hover::before{
     flex: 1;
     padding: 0.5rem;
     border: 1px solid var(--border-clr);
-    border-radius: 4px;
+    border-radius: 12px;
     font-family: inherit;
     font-size: 0.9rem;
     transition: border-color 0.3s ease;
@@ -1360,7 +1364,7 @@ a.link-testo:hover::before{
 .filters-wrapper .btn {
     padding: 0.6rem 1.2rem;
     border: none;
-    border-radius: 4px;
+    border-radius: 12px;
     font-family: inherit;
     font-size: 0.9rem;
     font-weight: 500;
@@ -1414,7 +1418,7 @@ a.link-testo:hover::before{
     padding: 0.6rem 1rem;
     background: #f8f9fa;
     color: #6c757d;
-    border-radius: 4px;
+    border-radius: 12px;
     font-size: 0.85rem;
     border: 1px solid #e9ecef;
     margin-left: auto;

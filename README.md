@@ -145,7 +145,7 @@ A launch configuration is provided in `.vscode/launch.json`. Press **F5** to sta
 | `/profiles/` | User profile page (login required) |
 | `/auth/login/` | Login page |
 | `/auth/logout/` | Logout |
-| `/admin/` | Django admin panel |
+| `/app-control-panel/` | Django admin panel |
 
 ### API Endpoints
 

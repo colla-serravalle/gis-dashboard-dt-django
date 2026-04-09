@@ -16,7 +16,7 @@ SERVICE_DEFINITIONS = [
     {
         "name": "Reports",
         "app_label": "reports",
-        "description": "Field inspection reports and PDF export",
+        "description": "Report di sopralluogo per interventi di manutenzione.",
         "groups": ["reports_users", "managers"],
         "icon_class": "fa-solid fa-file-invoice",
         "list_url_name": "reports:report_list",
@@ -31,7 +31,7 @@ SERVICE_DEFINITIONS = [
     {
         "name": "Segnalazioni",
         "app_label": "segnalazioni",
-        "description": "Archivio delle segnalazioni ricevute.",
+        "description": "Pannello di gestione delle segnalazioni ricevute.",
         "groups": ["segnalazioni_users", "managers"],
         "icon_class": "fa-solid fa-triangle-exclamation",
         "list_url_name": "segnalazioni:segnalazioni_list",
