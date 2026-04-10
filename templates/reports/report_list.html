@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Report di sopralluogo - GIS Dashboard{% endblock %}
+{% block title %}{{ ui_strings.reports_page_title }} - GIS Dashboard{% endblock %}
 
 {% block extra_head %}
 <script type="text/javascript" src="{% static 'js/filter-manager.js' %}" nonce="{{ csp_nonce }}" defer></script>
