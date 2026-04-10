@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Profilo Utente - GIS Dashboard{% endblock %}
+{% block title %}{{ ui_strings.profile_page_title }} - GIS Dashboard{% endblock %}
 
 {% block content %}
 <div class="profile-page-wrapper">
@@ -18,19 +18,19 @@
         <!-- User Info Section -->
         <table class="data-list">
             <tr>
-                <th>Nome Utente</th>
+                <th>{{ ui_strings.profile_field_username }}</th>
                 <td>{{ user.username }}</td>
             </tr>
             <tr>
-                <th>Email</th>
+                <th>{{ ui_strings.profile_field_email }}</th>
                 <td>{{ user.email }}</td>
             </tr>
             <tr>
-                <th>Nome Completo</th>
+                <th>{{ ui_strings.profile_field_fullname }}</th>
                 <td>{% if user.first_name or user.last_name %}{{ user.first_name }} {{ user.last_name }}{% else %}-{% endif %}</td>
             </tr>
             <tr>
-                <th>Data Registrazione</th>
+                <th>{{ ui_strings.profile_field_joined }}</th>
                 <td>{{ user.date_joined|date:"d/m/Y" }}</td>
             </tr>
         </table>

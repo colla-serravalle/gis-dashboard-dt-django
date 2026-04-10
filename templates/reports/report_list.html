@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Report di sopralluogo - GIS Dashboard{% endblock %}
+{% block title %}{{ ui_strings.reports_page_title }} - GIS Dashboard{% endblock %}
 
 {% block extra_head %}
 <script type="text/javascript" src="{% static 'js/filter-manager.js' %}" nonce="{{ csp_nonce }}" defer></script>
@@ -20,8 +20,8 @@
 </div>
 
 <div class="content-header">
-    <h1><i class="fa-solid fa-file-lines"></i> Report di sopralluogo</h1>
-    <p>Archivio dei sopralluoghi effettuati.</p>
+    <h1><i class="fa-solid fa-file-lines"></i> {{ ui_strings.reports_page_title }}</h1>
+    <p>{{ ui_strings.reports_page_subtitle }}</p>
 </div>
 
 <!-- Container per i filtri -->
@@ -36,13 +36,13 @@
             <th>{{ labels.tratta }}</th>
             <th>{{ labels.tipologia_appalto }}</th>
             <th>{{ labels.data_rilevamento }}</th>
-            <th>Azioni</th>
+            <th>{{ ui_strings.actions_col }}</th>
         </tr>
         </thead>
         <tbody id="tableBody">
         <tr>
             <td colspan="6" style="text-align: center; padding: 20px;">
-            Caricamento...
+            {{ ui_strings.loading }}
             </td>
         </tr>
         </tbody>
@@ -58,7 +58,7 @@
 <div id="pdf-loading-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; justify-content:center; align-items:center; opacity:0; transition:opacity 0.3s ease;">
     <div style="background:white; padding:32px 48px; border-radius:16px; text-align:center; box-shadow:0 8px 32px rgba(0,0,0,0.2);">
         <div style="width:48px; height:48px; border:4px solid #e0e0e0; border-top:4px solid #4caf50; border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 16px;"></div>
-        <p style="margin:0; font-size:16px; color:#333;">Generazione PDF in corso...</p>
+        <p style="margin:0; font-size:16px; color:#333;">{{ ui_strings.reports_pdf_loading }}</p>
     </div>
 </div>
 <style>

@@ -43,7 +43,7 @@
             .catch(function (error) {
                 console.error('Errore:', error);
                 var tbody = document.getElementById('tableBody');
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px; color: red;">Errore nel caricamento dei dati</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px; color: red;">' + window.UI_STRINGS.table_load_error + '</td></tr>';
                 throw error;
             });
     }
@@ -55,7 +55,7 @@
         currentPage = page;
 
         if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">Nessun dato trovato</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">' + window.UI_STRINGS.table_no_data + '</td></tr>';
             updatePaginationControls();
             return;
         }
@@ -93,7 +93,7 @@
 
     function updatePaginationControls() {
         var totalPages = Math.ceil(totalItems / itemsPerPage);
-        document.getElementById('pageInfo').textContent = 'Pagina ' + currentPage + ' di ' + (totalPages || 1);
+        document.getElementById('pageInfo').textContent = window.UI_STRINGS.pagination_page + ' ' + currentPage + ' ' + window.UI_STRINGS.pagination_of + ' ' + (totalPages || 1);
         document.getElementById('prevPage').disabled = currentPage === 1;
         document.getElementById('nextPage').disabled = currentPage === totalPages || totalPages === 0;
     }
@@ -175,7 +175,7 @@
                 },
                 {
                     field: 'date_range',
-                    label: 'Periodo',
+                    label: window.UI_STRINGS.filter_period_label,
                     type: 'dateRange'
                 }
             ],
@@ -218,7 +218,7 @@
             .catch(function (error) {
                 console.error('Errore durante il download del PDF:', error);
                 hideLoadingOverlay();
-                showErrorMessage('Si è verificato un errore durante la generazione del PDF. Riprova.');
+                showErrorMessage(window.UI_STRINGS.pdf_error_user_msg);
             });
         });
     });

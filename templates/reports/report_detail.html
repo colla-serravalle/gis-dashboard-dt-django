@@ -8,17 +8,17 @@
 {% endblock %}
 
 {% block content %}
-<a href="#" data-history-back class="standard-link text-link"><i class="fa-solid fa-circle-chevron-left"></i>Torna all'elenco</a>
+<a href="#" data-history-back class="standard-link text-link"><i class="fa-solid fa-circle-chevron-left"></i>{{ ui_strings.reports_back_link }}</a>
 
 {% if error %}
 <div class="text-chunk">
-    <h1>Errore</h1>
+    <h1>{{ ui_strings.error_title }}</h1>
     <p>{{ error }}</p>
 </div>
 {% else %}
 
 <div class="text-chunk">
-    <h1>Dettaglio report #{{ object_id }}</h1>
+    <h1>{{ ui_strings.reports_detail_prefix }}{{ object_id }}</h1>
 </div>
 
 <div id="report-main-ids-container">
@@ -37,17 +37,18 @@
     <form method="get" action="{% url 'reports:report_pdf' %}" id="pdf-download-form">
         <input type="hidden" name="rowid" value="{{ report_id }}">
         <button type="submit" class="standard-btn filled-lightgreen-btn">
-            <i class="fa-solid fa-file-arrow-down"></i>Scarica PDF
+            <i class="fa-solid fa-file-arrow-down"></i>{{ ui_strings.reports_pdf_btn }}
         </button>
     </form>
 
     {% if maps_url %}
     <a href="{{ maps_url }}" target="_blank" class="standard-link filled-lightgreen-btn">
-        <i class="fa-solid fa-location-dot"></i> Apri in Google Maps
+        <i class="fa-solid fa-location-dot"></i> {{ ui_strings.reports_maps_btn }}
     </a>
     {% endif %}
 </div>
 
+{# Section headings and empty-state messages below are domain-specific labels tied to ArcGIS field structure. Not externalized in this feature. #}
 <h2>Localizzazione intervento</h2>
 {% if location_data %}
 <table>
@@ -172,7 +173,7 @@
 <div id="pdf-loading-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; justify-content:center; align-items:center; opacity:0; transition:opacity 0.3s ease;">
     <div style="background:white; padding:32px 48px; border-radius:16px; text-align:center; box-shadow:0 8px 32px rgba(0,0,0,0.2);">
         <div style="width:48px; height:48px; border:4px solid #e0e0e0; border-top:4px solid #4caf50; border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 16px;"></div>
-        <p style="margin:0; font-size:16px; color:#333;">Generazione PDF in corso...</p>
+        <p style="margin:0; font-size:16px; color:#333;">{{ ui_strings.reports_pdf_loading }}</p>
     </div>
 </div>
 <style>

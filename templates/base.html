@@ -18,6 +18,10 @@
 
     <script type="text/javascript" src="{% static 'js/app.js' %}"
         {% if csp_nonce %}nonce="{{ csp_nonce }}"{% endif %} defer></script>
+    {{ ui_strings|json_script:"page-ui-strings" }}
+    <script {% if csp_nonce %}nonce="{{ csp_nonce }}"{% endif %}>
+        window.UI_STRINGS = JSON.parse(document.getElementById('page-ui-strings').textContent);
+    </script>
     {% block extra_css %}{% endblock %}
     {% block extra_head %}{% endblock %}
 </head>

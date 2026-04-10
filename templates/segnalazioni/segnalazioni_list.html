@@ -7,7 +7,7 @@
 <script type="text/javascript" src="{% static 'js/segnalazioni-list.js' %}" nonce="{{ csp_nonce }}" defer></script>
 {% endblock %}
 
-{% block title %}Segnalazioni{% endblock %}
+{% block title %}{{ ui_strings.segnalazioni_page_title }}{% endblock %}
 
 {% block content %}
 <div id="page-config" hidden
@@ -15,8 +15,8 @@
 </div>
 
 <div class="content-header">
-    <h1><i class="fa-solid fa-triangle-exclamation"></i> Segnalazioni</h1>
-    <p>Archivio delle segnalazioni ricevute.</p>
+    <h1><i class="fa-solid fa-triangle-exclamation"></i> {{ ui_strings.segnalazioni_page_title }}</h1>
+    <p>{{ ui_strings.segnalazioni_page_subtitle }}</p>
 </div>
 
 <div id="filters-container"></div>
@@ -26,15 +26,15 @@
         <thead>
             <tr>
                 <th>#</th>
-                <th data-sort="titolo">Titolo</th>
-                <th data-sort="categoria">Categoria</th>
-                <th data-sort="stato">Stato</th>
-                <th data-sort="data">Data</th>
-                <th>Azioni</th>
+                <th data-sort="titolo">{{ ui_strings.segnalazioni_col_title }}</th>
+                <th data-sort="categoria">{{ ui_strings.segnalazioni_col_category }}</th>
+                <th data-sort="stato">{{ ui_strings.segnalazioni_col_status }}</th>
+                <th data-sort="data">{{ ui_strings.segnalazioni_col_date }}</th>
+                <th>{{ ui_strings.actions_col }}</th>
             </tr>
         </thead>
         <tbody id="tableBody">
-            <tr><td colspan="6" style="text-align: center; padding: 20px;">Caricamento...</td></tr>
+            <tr><td colspan="6" style="text-align: center; padding: 20px;">{{ ui_strings.loading }}</td></tr>
         </tbody>
     </table>
 </div>

@@ -97,6 +97,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'apps.authorization.context_processors.accessible_services',
                 'config.context_processors.csp_nonce',
+                'config.context_processors.ui_strings',
             ],
         },
     },
