@@ -18,6 +18,7 @@ from apps.reports.services.image_utils import (
     local_image_to_base64_uri,
 )
 from apps.audit.utils import emit_audit_event
+from config.strings import UI_STRINGS
 
 logger = logging.getLogger(__name__)
 
@@ -28,15 +29,15 @@ def export_pdf(request):
     """Generate and return a PDF for a report."""
     report_id = request.GET.get('rowid')
     if not report_id:
-        return HttpResponse("Parametro 'rowid' mancante.", status=400)
+        return HttpResponse(UI_STRINGS['error_rowid_missing'], status=400)
 
     # Fetch all report data
     try:
         data = get_report_data(report_id)
     except ValueError:
-        return HttpResponseBadRequest('ID report non valido.')
+        return HttpResponseBadRequest(UI_STRINGS['error_invalid_report_id'])
     if data is None:
-        return HttpResponse("Record non trovato.", status=404)
+        return HttpResponse(UI_STRINGS['error_record_not_found_period'], status=404)
 
     emit_audit_event(request, "data.report.exported", detail={"report_id": report_id})
 
@@ -118,7 +119,7 @@ def export_pdf(request):
     # If PDF generation failed, pisa.CreatePDF returns a non-zero error code
     if isinstance(pdf_status, int) and pdf_status != 0:
         logger.error(f"PDF generation error for report {report_id}: pisa.CreatePDF returned error code {pdf_status}")
-        return HttpResponse("Errore nella generazione del PDF.", status=500)
+        return HttpResponse(UI_STRINGS['error_pdf_generation'], status=500)
 
     return response
 

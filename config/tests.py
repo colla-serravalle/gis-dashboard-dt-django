@@ -38,6 +38,30 @@ class UIStringsTest(TestCase):
             "profile_page_title", "profile_field_username",
             "profile_field_email", "profile_field_fullname",
             "profile_field_joined",
+            # Filtri
+            "filter_apply_btn", "filter_clear_btn", "filter_no_active",
+            "filter_active_suffix", "filter_select_placeholder",
+            "filter_select_all", "filter_deselect_all",
+            "filter_dropdown_help", "filter_date_from_title",
+            "filter_date_to_title", "filter_date_range_help",
+            "filter_options_selected_suffix", "filter_period_label",
+            "filter_search_placeholder", "filter_loading",
+            # Tabella / Paginazione
+            "table_no_data", "table_load_error",
+            "pagination_page", "pagination_of",
+            # Segnalazioni JS
+            "segnalazioni_open_title",
+            # PDF
+            "pdf_error_user_msg",
+            # Errori view accounts
+            "error_csrf_token", "error_login_locked", "error_credentials",
+            "error_session_invalid", "error_session_expired", "error_form_invalid",
+            # Errori view reports
+            "error_invalid_report_id", "error_record_not_found",
+            "error_record_not_found_period", "error_pagination_params",
+            "error_filter_param", "error_internal", "error_invalid_params",
+            "error_rowid_missing", "error_pdf_generation",
+            "error_attachment_fetch", "error_content_type",
         ]
         for key in required_keys:
             with self.subTest(key=key):

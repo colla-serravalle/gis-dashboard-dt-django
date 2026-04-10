@@ -11,6 +11,7 @@ from django.views.decorators.http import require_POST
 
 from .forms import LoginForm
 from apps.audit.utils import emit_audit_event
+from config.strings import UI_STRINGS
 
 logger = logging.getLogger(__name__)
 
@@ -32,15 +33,15 @@ class LoginView(View):
 
         error_message = None
         if error == 'csrf':
-            error_message = 'Token di sicurezza non valido. Riprova.'
+            error_message = UI_STRINGS['error_csrf_token']
         elif error == 'locked':
-            error_message = 'Troppi tentativi di login. Account temporaneamente bloccato.'
+            error_message = UI_STRINGS['error_login_locked']
         elif error == 'credentials':
-            error_message = 'Username e/o password errati!'
+            error_message = UI_STRINGS['error_credentials']
         elif error == 'session_invalid':
-            error_message = 'Sessione non valida. Effettua nuovamente il login.'
+            error_message = UI_STRINGS['error_session_invalid']
         elif timeout == '1':
-            error_message = 'Sessione scaduta per inattività. Effettua nuovamente il login.'
+            error_message = UI_STRINGS['error_session_expired']
 
         form = LoginForm()
 
@@ -115,12 +116,12 @@ class LoginView(View):
 
                 return render(request, self.template_name, {
                     'form': form,
-                    'error_message': 'Username e/o password errati!',
+                    'error_message': UI_STRINGS['error_credentials'],
                 })
 
         return render(request, self.template_name, {
             'form': form,
-            'error_message': 'Dati non validi. Riprova.',
+            'error_message': UI_STRINGS['error_form_invalid'],
         })
 
     def _get_client_ip(self, request):

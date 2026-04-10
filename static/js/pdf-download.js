@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', function() {
             hideLoadingOverlay();
             
             // Mostra messaggio di errore all'utente
-            showErrorMessage('Si è verificato un errore durante la generazione del PDF. Riprova.');
+            showErrorMessage(window.UI_STRINGS.pdf_error_user_msg);
         });
     });
 });

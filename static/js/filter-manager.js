@@ -66,14 +66,14 @@ class FilterManager {
         filtersHTML += `
             <div class="filter-actions">
                 <button type="button" id="apply-filters" class="btn btn-primary">
-                    <i class="fa-solid fa-filter"></i> Applica Filtri
+                    <i class="fa-solid fa-filter"></i> ${window.UI_STRINGS.filter_apply_btn}
                 </button>
                 <button type="button" id="clear-filters" class="btn btn-secondary">
-                    <i class="fa-solid fa-filter-circle-xmark"></i> Pulisci
+                    <i class="fa-solid fa-filter-circle-xmark"></i> ${window.UI_STRINGS.filter_clear_btn}
                 </button>
                 <div class="filter-status" id="filter-status">
                     <i class="fa-solid fa-circle-info"></i>
-                    <span>Nessun filtro attivo</span>
+                    <span>${window.UI_STRINGS.filter_no_active}</span>
                 </div>
             </div>
         </div>`;
@@ -117,23 +117,23 @@ class FilterManager {
                 </label>
                 <div class="custom-dropdown" data-field="${filterConfig.field}">
                     <div class="dropdown-trigger" id="${selectId}-trigger">
-                        <span class="dropdown-text">Seleziona opzioni</span>
+                        <span class="dropdown-text">${window.UI_STRINGS.filter_select_placeholder}</span>
                         <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
                     </div>
                     <div class="dropdown-menu" id="${selectId}-menu">
                         <div class="dropdown-search">
-                            <input type="text" 
-                                   placeholder="Cerca..." 
+                            <input type="text"
+                                   placeholder="${window.UI_STRINGS.filter_search_placeholder}"
                                    class="dropdown-search-input"
                                    id="${selectId}-search">
                             <i class="fa-solid fa-search"></i>
                         </div>
                         <div class="dropdown-actions">
                             <button type="button" class="dropdown-action-btn select-all" data-target="${selectId}">
-                                <i class="fa-solid fa-check-double"></i> Seleziona tutto
+                                <i class="fa-solid fa-check-double"></i> ${window.UI_STRINGS.filter_select_all}
                             </button>
                             <button type="button" class="dropdown-action-btn deselect-all" data-target="${selectId}">
-                                <i class="fa-solid fa-times"></i> Deseleziona tutto
+                                <i class="fa-solid fa-times"></i> ${window.UI_STRINGS.filter_deselect_all}
                             </button>
                         </div>
                         <div class="dropdown-options" id="${selectId}-options">
@@ -142,8 +142,8 @@ class FilterManager {
                     </div>
                 </div>
                 <small class="filter-help">
-                    <i class="fa-solid fa-info-circle"></i> 
-                    Clicca per aprire il menu e seleziona le opzioni desiderate
+                    <i class="fa-solid fa-info-circle"></i>
+                    ${window.UI_STRINGS.filter_dropdown_help}
                 </small>
             </div>
         `;
@@ -158,27 +158,27 @@ class FilterManager {
                     <i class="fa-solid fa-calendar-days"></i> ${filterConfig.label}
                 </label>
                 <div class="date-range-inputs">
-                    <input type="date" 
-                           id="filter-date-from" 
-                           class="filter-date" 
+                    <input type="date"
+                           id="filter-date-from"
+                           class="filter-date"
                            data-field="date_from"
-                           min="${dateRange.min || ''}" 
+                           min="${dateRange.min || ''}"
                            max="${dateRange.max || ''}"
-                           title="Data inizio periodo">
+                           title="${window.UI_STRINGS.filter_date_from_title}">
                     <span class="date-separator">
                         <i class="fa-solid fa-arrow-right"></i>
                     </span>
-                    <input type="date" 
-                           id="filter-date-to" 
-                           class="filter-date" 
+                    <input type="date"
+                           id="filter-date-to"
+                           class="filter-date"
                            data-field="date_to"
-                           min="${dateRange.min || ''}" 
+                           min="${dateRange.min || ''}"
                            max="${dateRange.max || ''}"
-                           title="Data fine periodo">
+                           title="${window.UI_STRINGS.filter_date_to_title}">
                 </div>
                 <small class="filter-help">
-                    <i class="fa-solid fa-info-circle"></i> 
-                    Lascia vuoto per non limitare l'inizio o la fine
+                    <i class="fa-solid fa-info-circle"></i>
+                    ${window.UI_STRINGS.filter_date_range_help}
                 </small>
             </div>
         `;
@@ -336,14 +336,14 @@ class FilterManager {
         const count = checkedBoxes.length;
 
         if (count === 0) {
-            textSpan.textContent = 'Seleziona opzioni';
+            textSpan.textContent = window.UI_STRINGS.filter_select_placeholder;
             textSpan.className = 'dropdown-text';
         } else if (count === 1) {
             const label = checkedBoxes[0].nextElementSibling ? checkedBoxes[0].nextElementSibling.textContent : checkedBoxes[0].value;
             textSpan.textContent = label;
             textSpan.className = 'dropdown-text selected';
         } else {
-            textSpan.textContent = `${count} opzioni selezionate`;
+            textSpan.textContent = `${count} ${window.UI_STRINGS.filter_options_selected_suffix}`;
             textSpan.className = 'dropdown-text selected';
         }
     }
@@ -397,7 +397,7 @@ class FilterManager {
         // Aggiorna il testo dei dropdown
         document.querySelectorAll('.custom-dropdown').forEach(dropdown => {
             const textSpan = dropdown.querySelector('.dropdown-text');
-            textSpan.textContent = 'Seleziona opzioni';
+            textSpan.textContent = window.UI_STRINGS.filter_select_placeholder;
             textSpan.className = 'dropdown-text';
         });
         
@@ -508,10 +508,10 @@ class FilterManager {
         const activeCount = Object.keys(this.activeFilters).length;
         
         if (activeCount === 0) {
-            span.textContent = 'Nessun filtro attivo';
+            span.textContent = window.UI_STRINGS.filter_no_active;
             statusElement.className = 'filter-status';
         } else {
-            span.textContent = `${activeCount} filtri attivi`;
+            span.textContent = `${activeCount} ${window.UI_STRINGS.filter_active_suffix}`;
             statusElement.className = 'filter-status active';
         }
     }
@@ -523,7 +523,7 @@ class FilterManager {
         if (loading) {
             if (applyBtn) {
                 applyBtn.disabled = true;
-                applyBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Caricamento...';
+                applyBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${window.UI_STRINGS.filter_loading}`;
             }
             if (clearBtn) {
                 clearBtn.disabled = true;
@@ -531,7 +531,7 @@ class FilterManager {
         } else {
             if (applyBtn) {
                 applyBtn.disabled = false;
-                applyBtn.innerHTML = '<i class="fa-solid fa-filter"></i> Applica Filtri';
+                applyBtn.innerHTML = `<i class="fa-solid fa-filter"></i> ${window.UI_STRINGS.filter_apply_btn}`;
             }
             if (clearBtn) {
                 clearBtn.disabled = false;

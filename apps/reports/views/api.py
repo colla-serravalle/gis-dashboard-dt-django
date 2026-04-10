@@ -11,6 +11,7 @@ from django.views.decorators.http import require_GET
 from apps.core.services.arcgis import query_feature_layer, get_attachments, get_arcgis_service
 from apps.reports.mappings import get_field_value, format_date
 from apps.audit.utils import emit_audit_event
+from config.strings import UI_STRINGS
 
 logger = logging.getLogger(__name__)
 
@@ -197,7 +198,7 @@ def get_data(request):
                 settings.MAX_ITEMS_PER_PAGE,
             )
         except (ValueError, TypeError):
-            return JsonResponse({'error': 'Parametri di paginazione non validi.'}, status=400)
+            return JsonResponse({'error': UI_STRINGS['error_pagination_params']}, status=400)
         offset = (page - 1) * per_page
 
         # Parse sorting params — allowlist to prevent field enumeration
@@ -272,10 +273,10 @@ def get_data(request):
 
     except ValueError as exc:
         logger.warning("Invalid filter parameter in get_data: %s", exc)
-        return JsonResponse({'error': 'Parametro di filtro non valido.'}, status=400)
+        return JsonResponse({'error': UI_STRINGS['error_filter_param']}, status=400)
     except Exception:
         logger.exception("Error in get_data")
-        return JsonResponse({'error': 'Si è verificato un errore interno.'}, status=500)
+        return JsonResponse({'error': UI_STRINGS['error_internal']}, status=500)
 
 
 @login_required
@@ -353,7 +354,7 @@ def get_filter_options(request):
 
     except Exception:
         logger.exception("Error in get_filter_options")
-        return JsonResponse({'error': 'Si è verificato un errore interno.'}, status=500)
+        return JsonResponse({'error': UI_STRINGS['error_internal']}, status=500)
 
 
 @login_required
@@ -370,17 +371,17 @@ def image_proxy(request, layer, object_id, attachment_id):
         object_id = int(object_id)
         attachment_id = int(attachment_id)
         if layer < 0 or object_id < 0 or attachment_id < 0:
-            return HttpResponse("Parametri non validi.", status=400)
+            return HttpResponse(UI_STRINGS['error_invalid_params'], status=400)
 
         service = get_arcgis_service()
         content, content_type = service.get_attachment_content(layer, object_id, attachment_id)
 
         if content is None:
-            return HttpResponse("Errore nel recupero dell'allegato.", status=500)
+            return HttpResponse(UI_STRINGS['error_attachment_fetch'], status=500)
 
         allowed_types = {'image/jpeg', 'image/png', 'image/gif', 'image/webp'}
         if content_type not in allowed_types:
-            return HttpResponse("Tipo di contenuto non consentito.", status=415)
+            return HttpResponse(UI_STRINGS['error_content_type'], status=415)
 
         response = HttpResponse(content, content_type=content_type)
         response['X-Content-Type-Options'] = 'nosniff'
@@ -388,7 +389,7 @@ def image_proxy(request, layer, object_id, attachment_id):
         return response
 
     except ValueError:
-        return HttpResponse("Parametri non validi.", status=400)
+        return HttpResponse(UI_STRINGS['error_invalid_params'], status=400)
     except Exception:
         logger.exception("Error in image_proxy")
-        return HttpResponse('Si è verificato un errore interno.', status=500)
+        return HttpResponse(UI_STRINGS['error_internal'], status=500)

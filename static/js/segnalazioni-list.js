@@ -29,7 +29,7 @@
             .catch(function (error) {
                 console.error('Errore:', error);
                 document.getElementById('tableBody').innerHTML =
-                    '<tr><td colspan="6" style="text-align:center;padding:20px;color:red;">Errore nel caricamento dei dati</td></tr>';
+                    '<tr><td colspan="6" style="text-align:center;padding:20px;color:red;">' + window.UI_STRINGS.table_load_error + '</td></tr>';
                 throw error;
             });
     }
@@ -41,7 +41,7 @@
         currentPage = page;
 
         if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;">Nessun dato trovato</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;">' + window.UI_STRINGS.table_no_data + '</td></tr>';
             updatePaginationControls();
             return;
         }
@@ -57,7 +57,7 @@
                 '<td>' + escapeHtml(row.data != null ? row.data : '') + '</td>' +
                 '<td>' +
                     '<div class="action-cell">' +
-                        '<a href="#" class="link-tabella action-icon-only" title="Apri Segnalazione">' +
+                        '<a href="#" class="link-tabella action-icon-only" title="' + window.UI_STRINGS.segnalazioni_open_title + '">' +
                             '<i class="fa-solid fa-eye"></i>' +
                         '</a>' +
                     '</div>' +
@@ -69,7 +69,7 @@
 
     function updatePaginationControls() {
         var totalPages = Math.ceil(totalItems / itemsPerPage);
-        document.getElementById('pageInfo').textContent = 'Pagina ' + currentPage + ' di ' + (totalPages || 1);
+        document.getElementById('pageInfo').textContent = window.UI_STRINGS.pagination_page + ' ' + currentPage + ' ' + window.UI_STRINGS.pagination_of + ' ' + (totalPages || 1);
         document.getElementById('prevPage').disabled = currentPage === 1;
         document.getElementById('nextPage').disabled = currentPage === totalPages || totalPages === 0;
     }
@@ -128,9 +128,9 @@
             filterOptionsEndpoint: '/segnalazioni/api/filters/',
             itemsPerPage: itemsPerPage,
             filters: [
-                { field: 'categoria',  label: 'Categoria', type: 'select' },
-                { field: 'stato',      label: 'Stato',     type: 'select' },
-                { field: 'date_range', label: 'Periodo',   type: 'dateRange' }
+                { field: 'categoria',  label: window.UI_STRINGS.segnalazioni_col_category, type: 'select' },
+                { field: 'stato',      label: window.UI_STRINGS.segnalazioni_col_status,   type: 'select' },
+                { field: 'date_range', label: window.UI_STRINGS.filter_period_label,        type: 'dateRange' }
             ],
             onDataLoad: function (data, page) { updateTable(data, page); }
         });
