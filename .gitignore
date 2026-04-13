@@ -46,3 +46,13 @@ Userscolla.claude-memchroma/
 
 # Vulnerabilities scans
 docs/vulnerability/
+
+# Misc
+.claudeignore
+.cursorrules
+.hintrc
+.mcp.json
+.windsurfrules
+AGENTS.md
+GEMINI.md
+dump.json
