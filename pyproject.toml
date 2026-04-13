@@ -21,6 +21,7 @@ dependencies = [
     "pypdf>=6.9.2",
     "requests>=2.33.0",
     "cryptography>=46.0.6",
+    "psycopg[binary]>=3.3.3",
 ]
 
 [tool.uv]
