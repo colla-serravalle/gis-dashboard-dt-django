@@ -20,8 +20,8 @@ RUN apt-get update && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Non-root user
-RUN groupadd --gid 1000 appuser && \
-    useradd --uid 1000 --gid 1000 --no-create-home appuser
+RUN groupadd --gid 1000 reports_user && \
+    useradd --uid 1000 --gid 1000 --no-create-home reports_user
 
 WORKDIR /app
 
@@ -42,9 +42,9 @@ RUN mkdir -p /app/logs /app/staticfiles
 ARG SECRET_KEY=build-time-dummy-not-used-in-production
 RUN SECRET_KEY=${SECRET_KEY} uv run python manage.py collectstatic --noinput
 
-RUN chown -R appuser:appuser /app/logs /app/staticfiles
+RUN chown -R reports_user:reports_user /app/logs /app/staticfiles
 
-USER appuser
+USER reports_user
 EXPOSE 8000
 
 CMD ["uv", "run", "gunicorn", "--config", "/etc/gunicorn/gunicorn.conf.py", "config.wsgi:application"]

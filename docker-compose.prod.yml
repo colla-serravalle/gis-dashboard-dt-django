@@ -27,6 +27,7 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    env_file: .env.prod
     command: >
       redis-server
         --requirepass ${REDIS_PASSWORD}
