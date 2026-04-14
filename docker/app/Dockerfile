@@ -1,7 +1,8 @@
 FROM python:3.13-slim AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    UV_CACHE_DIR=/tmp/uv-cache
 
 # Install uv from official image
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
