@@ -12,7 +12,11 @@ RUN apt-get update && \
         libpq-dev \
         gcc \
         libssl-dev \
-        ca-certificates && \
+        ca-certificates \
+        libcairo2-dev \
+        pkg-config \
+        python3-dev \
+        libgirepository1.0-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Non-root user
@@ -31,13 +35,14 @@ RUN uv sync --frozen --no-dev
 
 COPY docker/app/gunicorn.conf.py /etc/gunicorn/gunicorn.conf.py
 
+# Log dir must exist before Django initialises logging (collectstatic triggers it)
+RUN mkdir -p /app/logs /app/staticfiles
+
 # collectstatic requires SECRET_KEY; dummy value is safe — only used at build time
 ARG SECRET_KEY=build-time-dummy-not-used-in-production
 RUN SECRET_KEY=${SECRET_KEY} uv run python manage.py collectstatic --noinput
 
-# Log dir — all three log files land here (mounted as app-logs volume)
-RUN mkdir -p /app/logs && \
-    chown -R appuser:appuser /app/logs /app/staticfiles
+RUN chown -R appuser:appuser /app/logs /app/staticfiles
 
 USER appuser
 EXPOSE 8000
