@@ -1,4 +1,5 @@
 bind = "0.0.0.0:8000"
+worker_tmp_dir = "/tmp"
 workers = 3
 worker_class = "gthread"
 threads = 4
