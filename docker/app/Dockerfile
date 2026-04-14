@@ -43,7 +43,8 @@ RUN mkdir -p /app/logs /app/staticfiles
 ARG SECRET_KEY=build-time-dummy-not-used-in-production
 RUN SECRET_KEY=${SECRET_KEY} uv run python manage.py collectstatic --noinput
 
-RUN chown -R reports_user:reports_user /app/logs /app/staticfiles
+RUN chown -R reports_user:reports_user /app/logs /app/staticfiles && \
+    mkdir -p /tmp/uv-cache && chown -R reports_user:reports_user /tmp/uv-cache
 
 USER reports_user
 EXPOSE 8000
