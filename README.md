@@ -292,6 +292,124 @@ Per aggiungere un nuovo campo al mapping: aggiungere la coppia `'field_name': 'i
 | Codice non trovato nel CSV (valore sconosciuto) | Viene mostrato il codice grezzo (es. `nuovo_valore`) |
 | `ARCGIS_FIELD_MAPPINGS` vuoto o assente | Usa interamente i valori hardcoded in `FIELD_VALUES` |
 
+## Production Deployment (Docker)
+
+### Prerequisites
+
+- Docker & Docker Compose installed on the VM
+- `.env.prod` file present in the project root
+- SSL certificates in `docker/nginx/ssl/`
+
+### `.env.prod` required variables
+
+```env
+SECRET_KEY=<strong-random-key>
+DEBUG=False
+ALLOWED_HOSTS=reports.serravalle.it
+CSRF_TRUSTED_ORIGINS=https://reports.serravalle.it
+
+# Database
+POSTGRES_USER=<db-user>
+POSTGRES_PASSWORD=<db-password>
+POSTGRES_DB=<db-name>
+DATABASE_URL=postgres://<user>:<password>@db:5432/<db-name>
+
+# Redis
+REDIS_PASSWORD=<redis-password>
+REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+
+# Azure OIDC
+AZURE_TENANT_ID=<tenant-uuid>
+AZURE_CLIENT_ID=<client-id>
+AZURE_CLIENT_SECRET=<client-secret>
+```
+
+### First-time deployment
+
+```bash
+# 1. Pull latest code
+git pull
+
+# 2. Build app image
+docker compose --env-file .env.prod -f docker-compose.prod.yml build app --no-cache
+
+# 3. Start DB and Redis first
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d db redis
+
+# 4. Wait for healthy, then run migrations
+docker compose --env-file .env.prod -f docker-compose.prod.yml run --rm app \
+  uv run python manage.py migrate
+
+# 5. Create superuser
+docker compose --env-file .env.prod -f docker-compose.prod.yml run --rm app \
+  uv run python manage.py createsuperuser
+
+# 6. Load fixtures (if migrating data from dev)
+docker compose --env-file .env.prod -f docker-compose.prod.yml cp fixtures_prod.json app:/tmp/fixtures_prod.json
+docker compose --env-file .env.prod -f docker-compose.prod.yml exec app \
+  uv run python manage.py loaddata /tmp/fixtures_prod.json
+docker compose --env-file .env.prod -f docker-compose.prod.yml exec --user root app \
+  rm /tmp/fixtures_prod.json
+
+# 7. Start all services
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
+```
+
+### Subsequent deployments
+
+```bash
+# 1. Pull latest code
+git pull
+
+# 2. Rebuild app image
+docker compose --env-file .env.prod -f docker-compose.prod.yml build app --no-cache
+
+# 3. Run migrations
+docker compose --env-file .env.prod -f docker-compose.prod.yml run --rm app \
+  uv run python manage.py migrate
+
+# 4. Restart services
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
+```
+
+### Verify deployment
+
+```bash
+# Check all containers healthy
+docker compose --env-file .env.prod -f docker-compose.prod.yml ps
+
+# Check DB connection
+docker compose --env-file .env.prod -f docker-compose.prod.yml exec app \
+  uv run python -c "from django.db import connection; connection.ensure_connection(); print('DB OK')"
+
+# Check Redis connection
+docker compose --env-file .env.prod -f docker-compose.prod.yml exec app \
+  uv run python -c "from django.core.cache import cache; cache.set('test', 1); print('Redis OK' if cache.get('test') else 'Redis FAIL')"
+
+# Check running user (should be reports_user)
+docker compose --env-file .env.prod -f docker-compose.prod.yml exec app whoami
+
+# Tail logs
+docker compose --env-file .env.prod -f docker-compose.prod.yml logs app -f
+```
+
+### Inspect application logs
+
+```bash
+LOG_DIR=$(sudo docker volume inspect $(docker volume ls -q | grep app-logs) --format '{{ .Mountpoint }}')
+sudo tail -f $LOG_DIR/app.log
+sudo tail -f $LOG_DIR/audit.log
+sudo tail -f $LOG_DIR/arcgis.log
+```
+
+### Shutdown
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml down
+```
+
+---
+
 ## Useful Commands
 
 ```bash

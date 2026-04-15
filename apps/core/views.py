@@ -2,6 +2,7 @@
 
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 from django.views import View
 from django.utils.decorators import method_decorator
 
@@ -14,3 +15,10 @@ class HomeView(View):
 
     def get(self, request):
         return render(request, self.template_name)
+
+
+class HealthView(View):
+    """Liveness probe for Docker/load balancer health checks. No auth required."""
+
+    def get(self, request):
+        return JsonResponse({'status': 'ok'})

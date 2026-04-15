@@ -8,8 +8,10 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import RedirectView
+from apps.core.views import HealthView
 
 urlpatterns = [
+    path('health/', HealthView.as_view(), name='health'),
     path(os.environ.get('DJANGO_ADMIN_URL', 'app-control-panel/'), admin.site.urls),
     path('oidc/', include('mozilla_django_oidc.urls')),
     # Redirect legacy login URL to unified login page
