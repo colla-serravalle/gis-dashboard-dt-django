@@ -72,6 +72,8 @@ services:
     image: dpage/pgadmin4:latest
     restart: unless-stopped
     env_file: .env.prod
+    environment:
+      SCRIPT_NAME: /pgadmin
     volumes:
       - pgadmin-data:/var/lib/pgadmin
     depends_on:
