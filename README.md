@@ -406,8 +406,8 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml exec app \
 docker compose --env-file .env.prod -f docker-compose.prod.yml exec app whoami
 
 # Check pgAdmin is reachable (from within 172.20.0.0/16 subnet)
-curl -sk -o /dev/null -w "%{http_code}" https://reports.serravalle.it/pgadmin/
-# Expected: 200
+curl -skL -o /dev/null -w "%{http_code}" https://reports.serravalle.it/pgadmin/
+# Expected: 200 (302 redirect to login page is also healthy)
 
 # Tail logs
 docker compose --env-file .env.prod -f docker-compose.prod.yml logs app -f
