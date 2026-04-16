@@ -1,5 +1,5 @@
 """
-URL configuration for GIS Dashboard DT project.
+URL configuration for Reports Serravalle project.
 """
 
 import os

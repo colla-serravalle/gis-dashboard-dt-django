@@ -1,4 +1,4 @@
-# GIS Dashboard DT
+# Reports Serravalle
 
 Internal dashboard for managing and viewing field inspection reports, built with Django. Connects to ArcGIS Enterprise to query feature layers, display report data with filtering/pagination, and proxy attachment images.
 
@@ -14,6 +14,7 @@ Migrated from a PHP application originally hosted on altervista.org.
 - **User Profiles** - Authenticated user profile pages with avatar support
 - **Token Caching** - Intelligent ArcGIS token management with automatic refresh
 - **Service Authorization** - Group-based access control per app/service with middleware enforcement and admin management
+- **pgAdmin** - Web-based PostgreSQL management UI, accessible only from the internal subnet (`172.20.0.0/16`) via Nginx reverse proxy
 
 ## Tech Stack
 
@@ -322,6 +323,12 @@ REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
 AZURE_TENANT_ID=<tenant-uuid>
 AZURE_CLIENT_ID=<client-id>
 AZURE_CLIENT_SECRET=<client-secret>
+
+# pgAdmin
+PGADMIN_DEFAULT_EMAIL=admin@serravalle.it
+PGADMIN_DEFAULT_PASSWORD=<strong-password>
+PGADMIN_CONFIG_SERVER_MODE=True
+PGADMIN_CONFIG_SCRIPT_NAME=/pgadmin
 ```
 
 ### First-time deployment
@@ -330,13 +337,13 @@ AZURE_CLIENT_SECRET=<client-secret>
 # 1. Pull latest code
 git pull
 
-# 2. Build app image
-docker compose --env-file .env.prod -f docker-compose.prod.yml build app --no-cache
+# 2. Build custom images (app + nginx — pgAdmin uses a pre-built image)
+docker compose --env-file .env.prod -f docker-compose.prod.yml build app nginx --no-cache
 
-# 3. Start DB and Redis first
+# 3. Start DB and Redis first, wait for healthy
 docker compose --env-file .env.prod -f docker-compose.prod.yml up -d db redis
 
-# 4. Wait for healthy, then run migrations
+# 4. Run migrations
 docker compose --env-file .env.prod -f docker-compose.prod.yml run --rm app \
   uv run python manage.py migrate
 
@@ -344,16 +351,22 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml run --rm app \
 docker compose --env-file .env.prod -f docker-compose.prod.yml run --rm app \
   uv run python manage.py createsuperuser
 
-# 6. Load fixtures (if migrating data from dev)
+# 6. Seed service definitions and groups
+docker compose --env-file .env.prod -f docker-compose.prod.yml run --rm app \
+  uv run python manage.py seed_services
+
+# 7. Load fixtures (if migrating data from dev)
 docker compose --env-file .env.prod -f docker-compose.prod.yml cp fixtures_prod.json app:/tmp/fixtures_prod.json
 docker compose --env-file .env.prod -f docker-compose.prod.yml exec app \
   uv run python manage.py loaddata /tmp/fixtures_prod.json
 docker compose --env-file .env.prod -f docker-compose.prod.yml exec --user root app \
   rm /tmp/fixtures_prod.json
 
-# 7. Start all services
+# 8. Start full stack (app, nginx, pgAdmin, db, redis)
 docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
 ```
+
+> **pgAdmin first-time setup:** After the stack is up, open `https://reports.serravalle.it/pgadmin/` from within the `172.20.0.0/16` subnet. Log in with `PGADMIN_DEFAULT_EMAIL` / `PGADMIN_DEFAULT_PASSWORD`. Register a server: **Host** = `db`, **Port** = `5432`, **Database** = `POSTGRES_DB` value, **Username** = `POSTGRES_USER` value.
 
 ### Subsequent deployments
 
@@ -361,21 +374,24 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
 # 1. Pull latest code
 git pull
 
-# 2. Rebuild app image
+# 2. Rebuild app image (always)
 docker compose --env-file .env.prod -f docker-compose.prod.yml build app --no-cache
+
+# 2b. Rebuild nginx image (only if docker/nginx/nginx.conf or Dockerfile changed)
+docker compose --env-file .env.prod -f docker-compose.prod.yml build nginx --no-cache
 
 # 3. Run migrations
 docker compose --env-file .env.prod -f docker-compose.prod.yml run --rm app \
   uv run python manage.py migrate
 
-# 4. Restart services
+# 4. Restart services (pgAdmin, db, redis restart only if image or config changed)
 docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
 ```
 
 ### Verify deployment
 
 ```bash
-# Check all containers healthy
+# Check all containers healthy (app, db, redis, nginx, pgadmin)
 docker compose --env-file .env.prod -f docker-compose.prod.yml ps
 
 # Check DB connection
@@ -389,8 +405,13 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml exec app \
 # Check running user (should be reports_user)
 docker compose --env-file .env.prod -f docker-compose.prod.yml exec app whoami
 
+# Check pgAdmin is reachable (from within 172.20.0.0/16 subnet)
+curl -skL -o /dev/null -w "%{http_code}" https://reports.serravalle.it/pgadmin/
+# Expected: 200 (302 redirect to login page is also healthy)
+
 # Tail logs
 docker compose --env-file .env.prod -f docker-compose.prod.yml logs app -f
+docker compose --env-file .env.prod -f docker-compose.prod.yml logs pgadmin -f
 ```
 
 ### Inspect application logs
