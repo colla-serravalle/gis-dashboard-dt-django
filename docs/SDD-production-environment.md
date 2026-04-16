@@ -6,8 +6,8 @@
 | Campo              | Valore                             |
 |--------------------|------------------------------------|
 | **ID Documento**   | SDD-PROD-001                       |
-| **Versione**       | 1.0                                |
-| **Data**           | 2026-04-15                         |
+| **Versione**       | 1.1                                |
+| **Data**           | 2026-04-16                         |
 | **Applicazione**   | Reports Serravalle                 |
 | **Autore**         | Stefano Colla                      |
 | **Stato**          | Rilasciato                         |
@@ -19,6 +19,7 @@
 | Versione | Data       | Autore         | Descrizione              |
 |----------|------------|----------------|--------------------------|
 | 1.0      | 2026-04-15 | Stefano Colla  | Prima emissione          |
+| 1.1      | 2026-04-16 | Stefano Colla  | Aggiunta pgAdmin (3.5, 4.6, 4.7) |
 
 ### Revisori
 
@@ -33,6 +34,11 @@
 1. [Introduzione](#1-introduzione)
 2. [Panoramica del Sistema](#2-panoramica-del-sistema)
 3. [Componenti del Sistema](#3-componenti-del-sistema)
+   - [3.1 Nginx](#31-nginx-reverse-proxy)
+   - [3.2 Applicazione Django](#32-applicazione-django-app)
+   - [3.3 PostgreSQL](#33-postgresql-db)
+   - [3.4 Redis](#34-redis-redis)
+   - [3.5 pgAdmin](#35-pgadmin-pgadmin)
 4. [Design di Dettaglio](#4-design-di-dettaglio)
 
 ---
@@ -47,7 +53,7 @@ Questo documento descrive l'architettura di produzione e il design di dettaglio 
 
 Il documento copre:
 
-- Lo stack di produzione containerizzato (Nginx, Django/Gunicorn, PostgreSQL, Redis)
+- Lo stack di produzione containerizzato (Nginx, Django/Gunicorn, PostgreSQL, Redis, pgAdmin)
 - La gestione della rete e dei volumi Docker
 - I controlli di sicurezza a livello infrastrutturale e applicativo
 - Le integrazioni esterne (ArcGIS Enterprise, Azure AD OIDC)
@@ -65,6 +71,7 @@ Il documento copre:
 | CSP        | Content Security Policy                                                         |
 | SCRAM      | Salted Challenge Response Authentication Mechanism (autenticazione PostgreSQL)  |
 | TLS        | Transport Layer Security — protocollo di crittografia per le comunicazioni HTTPS |
+| pgAdmin    | Interfaccia web di amministrazione per PostgreSQL                               |
 
 ### 1.4 Riferimenti
 
@@ -96,7 +103,8 @@ VM Host  (Linux, Docker Engine)
 │   │     ├── Terminazione TLS (star_serravalle_it_2025)
 │   │     ├── Redirect HTTP → HTTPS
 │   │     ├── Servizio file statici (/static/)
-│   │     └── Reverse proxy → app:8000
+│   │     ├── Reverse proxy → app:8000
+│   │     └── /pgadmin/ → pgadmin:80  [solo 172.20.0.0/16]
 │   │
 │   ├── app            (Django 6 / Gunicorn)
 │   │     ├── 3 worker × 4 thread = 12 richieste concorrenti
@@ -107,13 +115,19 @@ VM Host  (Linux, Docker Engine)
 │   ├── db             (PostgreSQL 16-alpine)
 │   │     └── Scrive: volume postgres-data
 │   │
-│   └── redis          (Redis 7-alpine)
-│         └── Solo in memoria (maxmemory 256 MB, allkeys-lru)
+│   ├── redis          (Redis 7-alpine)
+│   │     └── Solo in memoria (maxmemory 256 MB, allkeys-lru)
+│   │
+│   └── pgadmin        (dpage/pgadmin4:latest)
+│         ├── Nessuna porta esposta sull'host
+│         ├── Accessibile solo via Nginx (/pgadmin/)
+│         └── Scrive: volume pgadmin-data
 │
 ├── [volumi]
 │   ├── postgres-data   → /var/lib/postgresql/data
 │   ├── static-files    → /app/staticfiles (app rw, nginx ro)
-│   └── app-logs        → /app/logs
+│   ├── app-logs        → /app/logs
+│   └── pgadmin-data    → /var/lib/pgadmin
 │
 └── [dipendenze esterne]
     ├── gisserver.serravalle.it:443   (ArcGIS Enterprise)
@@ -122,12 +136,14 @@ VM Host  (Linux, Docker Engine)
 
 ### 2.3 Flusso delle Richieste
 
+**Richieste applicative:**
+
 ```
 Browser
   │  HTTPS :443
   ▼
 Nginx (terminazione TLS)
-  │  HTTP  :8000 (proxy_pass)
+  │  HTTP  :8000 (proxy_pass → app)
   ▼
 Gunicorn (WSGI)
   │
@@ -140,6 +156,21 @@ Stack middleware Django
         ├── PostgreSQL (query ORM)
         ├── Redis (cache token ArcGIS / cache Django)
         └── ArcGIS REST API (HTTPS in uscita)
+```
+
+**Richieste pgAdmin** (solo da subnet `172.20.0.0/16`):
+
+```
+Browser (172.20.x.x)
+  │  HTTPS :443  → /pgadmin/
+  ▼
+Nginx
+  ├── Controllo IP sorgente
+  │     ├── 172.20.0.0/16 → proxy_pass → pgadmin:80
+  │     └── Altro          → 403 Forbidden
+  ▼
+pgAdmin4
+  └── Connessione diretta a db:5432 (rete bridge interna)
 ```
 
 ---
@@ -245,6 +276,43 @@ Stack middleware Django
 
 - Token di autenticazione ArcGIS (TTL = durata token − 1 minuto)
 - Mapping CSV campi ArcGIS (TTL = `ARCGIS_MAPPING_CACHE_TIMEOUT`, default 300s)
+
+### 3.5 pgAdmin (pgadmin)
+
+| Proprietà          | Valore                                              |
+|--------------------|-----------------------------------------------------|
+| Immagine           | `dpage/pgadmin4:latest`                             |
+| Porte esposte      | Nessuna (accesso solo via Nginx)                    |
+| Percorso Nginx     | `/pgadmin/` — solo `172.20.0.0/16`                  |
+| Dipende da         | `db` (healthy)                                      |
+| Restart policy     | `unless-stopped`                                    |
+| Persistenza        | Volume named `pgadmin-data`                         |
+
+**Responsabilità:**
+
+- Fornire un'interfaccia web per l'amministrazione del database PostgreSQL
+- Accessibile esclusivamente dall'interno della subnet aziendale (`172.20.0.0/16`) tramite il blocco IP di Nginx
+- Si connette direttamente al servizio `db:5432` sulla rete bridge interna — nessuna connessione diretta dall'host
+
+**Configurazione principale:**
+
+| Variabile                        | Valore                             |
+|----------------------------------|------------------------------------|
+| `PGADMIN_DEFAULT_EMAIL`          | Email dell'account amministratore  |
+| `PGADMIN_DEFAULT_PASSWORD`       | Password account (da `.env.prod`)  |
+| `PGADMIN_CONFIG_SERVER_MODE`     | `True` (modalità multi-utente)     |
+| `PGADMIN_CONFIG_SCRIPT_NAME`     | `/pgadmin` (path prefix Nginx)     |
+
+**Primo accesso — configurazione server:**
+
+1. Aprire `https://reports.serravalle.it/pgadmin/` da un host nella subnet `172.20.0.0/16`
+2. Accedere con `PGADMIN_DEFAULT_EMAIL` e `PGADMIN_DEFAULT_PASSWORD`
+3. Aggiungere un nuovo server:
+   - **Host:** `db`
+   - **Port:** `5432`
+   - **Database:** valore di `POSTGRES_DB`
+   - **Username:** valore di `POSTGRES_USER`
+   - **Password:** valore di `POSTGRES_PASSWORD`
 
 ---
 
@@ -362,6 +430,7 @@ sudo tail -f $LOG_DIR/arcgis.log
 | Container    | Utente non-root `reports_user` (UID 1000); senza home directory                   |
 | Database     | Cifratura password SCRAM-SHA-256; audit logging DDL abilitato                     |
 | Redis        | Protetto da password; comandi distruttivi disabilitati                            |
+| pgAdmin      | Nessuna porta esposta sull'host; accesso bloccato a `172.20.0.0/16` da Nginx      |
 | Segreti      | Tutti i segreti in `.env.prod` (non committato nel version control)               |
 
 ### 4.7 Variabili d'Ambiente
@@ -384,9 +453,13 @@ sudo tail -f $LOG_DIR/arcgis.log
 | `ARCGIS_USERNAME`           | Sì           | Username portale ArcGIS Enterprise                   |
 | `ARCGIS_PASSWORD`           | Sì           | Password portale ArcGIS Enterprise                   |
 | `ARCGIS_PORTAL_TOKEN_URL`   | No           | Endpoint generazione token (default: derivato da env)|
-| `ARCGIS_FEATURE_SERVICE_URL`| No           | URL base del feature service                         |
-| `LOG_LEVEL`                 | No           | Livello di logging (default: `INFO`)                 |
-| `SESSION_TIMEOUT`           | No           | TTL sessione in secondi (default: `3600`)            |
+| `ARCGIS_FEATURE_SERVICE_URL`    | No           | URL base del feature service                         |
+| `LOG_LEVEL`                     | No           | Livello di logging (default: `INFO`)                 |
+| `SESSION_TIMEOUT`               | No           | TTL sessione in secondi (default: `3600`)            |
+| `PGADMIN_DEFAULT_EMAIL`         | Sì           | Email account amministratore pgAdmin                 |
+| `PGADMIN_DEFAULT_PASSWORD`      | Sì           | Password account amministratore pgAdmin              |
+| `PGADMIN_CONFIG_SERVER_MODE`    | Sì           | Deve essere `True` (modalità multi-utente)           |
+| `PGADMIN_CONFIG_SCRIPT_NAME`    | Sì           | Path prefix Nginx, deve essere `/pgadmin`            |
 
 ---
 
