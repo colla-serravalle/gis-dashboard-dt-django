@@ -1,5 +1,5 @@
 """
-Django settings for GIS Dashboard DT project.
+Django settings for Reports Serravalle project.
 
 Migrated from PHP application.
 """

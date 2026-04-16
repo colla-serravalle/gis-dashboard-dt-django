@@ -1,4 +1,4 @@
-# GIS Dashboard DT
+# Reports Serravalle
 
 Internal dashboard for managing and viewing field inspection reports, built with Django. Connects to ArcGIS Enterprise to query feature layers, display report data with filtering/pagination, and proxy attachment images.
 
