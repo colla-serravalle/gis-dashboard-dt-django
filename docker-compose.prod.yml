@@ -67,6 +67,21 @@ services:
     networks:
       - backend
 
+  # ── pgAdmin ─────────────────────────────────────────────────────────────────
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    restart: unless-stopped
+    env_file: .env.prod
+    environment:
+      SCRIPT_NAME: /pgadmin
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend
+
   # ── Nginx ───────────────────────────────────────────────────────────────────
   nginx:
     build:
@@ -88,6 +103,7 @@ volumes:
   postgres-data:
   static-files:
   app-logs:
+  pgadmin-data:
 
 networks:
   backend:

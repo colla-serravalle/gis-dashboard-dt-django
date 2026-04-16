@@ -1,5 +1,5 @@
 """
-UI string definitions for the GIS Dashboard.
+UI string definitions for Reports Serravalle.
 
 All user-visible text in templates, JavaScript, and Python views is defined here.
 To update a label, change the value — do not change the key (templates and JS depend on it).
